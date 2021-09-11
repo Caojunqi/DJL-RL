@@ -109,4 +109,12 @@ public abstract class Environment {
         random.setSeed(seed);
     }
 
+    public int getStateSpaceDim() {
+        return stateSpace.getDim();
+    }
+
+    public int getActionSpaceDim() {
+        return actionSpace.getDim();
+    }
+
 }

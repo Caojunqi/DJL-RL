@@ -15,4 +15,9 @@ public interface Space {
      * member of this space
      */
     boolean contains(Object x);
+
+    /**
+     * Return the number of space dimensions
+     */
+    int getDim();
 }

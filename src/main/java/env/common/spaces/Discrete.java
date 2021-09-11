@@ -25,4 +25,9 @@ public class Discrete implements Space {
         int xInt = (Integer) x;
         return xInt >= 0 && xInt < num;
     }
+
+    @Override
+    public int getDim() {
+        return num;
+    }
 }

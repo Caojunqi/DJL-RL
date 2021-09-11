@@ -52,6 +52,11 @@ public class Box implements Space {
         return true;
     }
 
+    @Override
+    public int getDim() {
+        return spaces.length;
+    }
+
     /**
      * 检验数据合法性
      */

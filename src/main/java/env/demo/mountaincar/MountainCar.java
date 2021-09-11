@@ -65,11 +65,13 @@ public class MountainCar extends Environment {
     private static final double MAX_EPISODE_LENGTH = 200;
 
     private final float[] state = new float[]{0.0f, 0.0f};
+    private final MountainCarVisualizer visualizer;
 
     private int episodeLength = 0;
 
-    public MountainCar() {
+    public MountainCar(boolean visual) {
         super(new Box(STATE_SPACE), new Discrete(3));
+        visualizer = visual ? new MountainCarVisualizer(MIN_POSITION, MAX_POSITION, GOAL_POSITION, 1000) : null;
     }
 
     @Override
@@ -100,6 +102,9 @@ public class MountainCar extends Environment {
 
     @Override
     public void render() {
+        if (visualizer != null) {
+            visualizer.update(state);
+        }
     }
 
     @Override
