@@ -87,7 +87,7 @@ public abstract class Environment {
      *
      * @return state (object): the initial state.
      */
-    public abstract Snapshot reset();
+    public abstract float[] reset();
 
     /**
      * Renders the environment.

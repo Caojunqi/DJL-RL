@@ -18,7 +18,9 @@ import ai.djl.translate.NoopTranslator;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import utils.ActionSampler;
+import utils.Helper;
 import utils.Memory;
+import utils.MemoryBatch;
 
 import java.util.Random;
 
@@ -80,7 +82,7 @@ public class PPO extends BaseAgent {
     }
 
     @Override
-    public int react(float[] state) {
+    public int selectAction(float[] state) {
         try (NDManager subManager = manager.newSubManager()) {
             NDArray prob = predictor.predict(new NDList(subManager.create(state))).get(0);
             return ActionSampler.sampleMultinomial(prob, random);
@@ -90,66 +92,80 @@ public class PPO extends BaseAgent {
     }
 
     @Override
-    public void collect(float reward, boolean done) {
-
+    public void collect(float[] state, int action, boolean done, float[] nextState, float reward) {
+        memory.addTransition(state, action, done, nextState, reward);
     }
 
-    protected void updateModel(NDManager submanager) throws TranslateException {
-        MemoryBatch batch = memory.getOrderedBatch(submanager);
+    @Override
+    public void updateModel() throws TranslateException {
+        NDManager subManager = manager.newSubManager();
+        MemoryBatch batch = memory.sample(subManager);
         NDArray states = batch.getStates();
         NDArray actions = batch.getActions();
 
-        NDList net_output = predictor.predict(new NDList(states));
+        NDList netOutput = predictor.predict(new NDList(states));
 
-        NDArray distribution = Helper.gather(net_output.get(0).duplicate(), actions.toIntArray());
-        NDArray values = net_output.get(1).duplicate();
+        NDArray distribution = Helper.gather(netOutput.get(0).duplicate(), actions.toIntArray());
+        NDArray values = netOutput.get(1).duplicate();
 
         NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards());
-        NDArray expected_returns = estimates.get(0);
+        NDArray expectedReturns = estimates.get(0);
         NDArray advantages = estimates.get(1);
 
-        int[] index = new int[inner_batch_size];
+        int[] index = new int[innerBatchSize];
 
-        for (int i = 0; i < inner_updates * (1 + batch.size() / inner_batch_size); i++) {
-            for (int j = 0; j < inner_batch_size; j++) {
+        for (int i = 0; i < innerUpdates * (1 + batch.size() / innerBatchSize); i++) {
+            for (int j = 0; j < innerBatchSize; j++) {
                 index[j] = random.nextInt(batch.size());
             }
-            NDArray states_subset = getSample(submanager, states, index);
-            NDArray actions_subset = getSample(submanager, actions, index);
-            NDArray distribution_subset = getSample(submanager, distribution, index);
-            NDArray expected_returns_subset = getSample(submanager, expected_returns, index);
-            NDArray advantages_subset = getSample(submanager, advantages, index);
+            NDArray statesSubset = getSample(subManager, states, index);
+            NDArray actionsSubset = getSample(subManager, actions, index);
+            NDArray distributionSubset = getSample(subManager, distribution, index);
+            NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
+            NDArray advantagesSubset = getSample(subManager, advantages, index);
 
-            NDList net_output_updated = predictor.predict(new NDList(states_subset));
-            NDArray distribution_updated = Helper.gather(net_output_updated.get(0), actions_subset.toIntArray());
-            NDArray values_updated = net_output_updated.get(1);
+            NDList netOutputUpdated = predictor.predict(new NDList(statesSubset));
+            NDArray distributionUpdated = Helper.gather(netOutputUpdated.get(0), actionsSubset.toIntArray());
+            NDArray valuesUpdated = netOutputUpdated.get(1);
 
-            NDArray loss_critic = (expected_returns_subset.sub(values_updated)).square().sum();
+            NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().sum();
 
-            NDArray ratios = distribution_updated.div(distribution_subset).expandDims(1);
+            NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
 
-            NDArray loss_actor = ratios.clip(ratio_lower_bound, ratio_upper_bound).mul(advantages_subset)
-                    .minimum(ratios.mul(advantages_subset)).sum().neg();
-            NDArray loss = loss_actor.add(loss_critic);
+            NDArray lossActor = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset)
+                    .minimum(ratios.mul(advantagesSubset)).sum().neg();
+            NDArray loss = lossActor.add(lossCritic);
 
             try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                 collector.backward(loss);
 
                 for (Pair<String, Parameter> params : model.getBlock().getParameters()) {
-                    NDArray params_arr = params.getValue().getArray();
+                    NDArray paramsArr = params.getValue().getArray();
 
-                    optimizer.update(params.getKey(), params_arr, params_arr.getGradient().duplicate());
+                    optimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                 }
 
             }
         }
     }
 
-    private NDArray getSample(NDManager submanager, NDArray array, int[] index) {
+    private NDList estimateAdvantage(NDArray values, NDArray rewards) {
+        NDArray expected_returns = rewards.duplicate();
+        NDArray advantages = rewards.sub(values.squeeze());
+        for (long i = expected_returns.getShape().get(0) - 2; i >= 0; i--) {
+            NDIndex index = new NDIndex(i);
+            expected_returns.set(index, expected_returns.get(i).add(expected_returns.get(i + 1).mul(gamma)));
+            advantages.set(index,
+                    advantages.get(i).add(values.get(i + 1).add(advantages.get(i + 1).mul(gaeLambda)).mul(gamma)));
+        }
 
-        Shape shape = Shape.update(array.getShape(), 0, inner_batch_size);
-        NDArray sample = submanager.zeros(shape, array.getDataType());
-        for (int i = 0; i < inner_batch_size; i++) {
+        return new NDList(expected_returns, advantages);
+    }
+
+    private NDArray getSample(NDManager subManager, NDArray array, int[] index) {
+        Shape shape = Shape.update(array.getShape(), 0, innerBatchSize);
+        NDArray sample = subManager.zeros(shape, array.getDataType());
+        for (int i = 0; i < innerBatchSize; i++) {
             sample.set(new NDIndex(i), array.get(index[i]));
         }
         return sample;

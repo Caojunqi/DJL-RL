@@ -1,8 +1,9 @@
 package utils;
 
+import ai.djl.ndarray.NDManager;
 import utils.datatype.Transition;
 
-import java.util.Random;
+import java.util.*;
 
 /**
  * 样本数据缓存
@@ -58,17 +59,31 @@ public class Memory {
     }
 
     /**
-     * 随机采样指定数量的样本
+     * 将缓存的样本数据随机打乱，用作采样数据
      *
-     * @param sampleSize 所需样本数量
+     * @param manager 用来管理NDArray的生成
      * @return 采样结果
      */
-    public Transition[] sample(int sampleSize) {
-        Transition[] chunk = new Transition[sampleSize];
-        for (int i = 0; i < sampleSize; i++) {
-            chunk[i] = transitions[random.nextInt(size)];
+    public MemoryBatch sample(NDManager manager) {
+        List<Transition> tmpList = new ArrayList<>(Arrays.asList(transitions));
+        Collections.shuffle(tmpList);
+        int batchSize = tmpList.size();
+
+        float[][] states = new float[batchSize][];
+        int[] actions = new int[batchSize];
+        boolean[] masks = new boolean[batchSize];
+        float[][] nextStates = new float[batchSize][];
+        float[] rewards = new float[batchSize];
+
+        for (int i = 0; i < batchSize; i++) {
+            Transition transition = tmpList.get(i);
+            states[i] = transition.getState();
+            actions[i] = transition.getAction();
+            masks[i] = transition.isMasked();
+            nextStates[i] = transition.getNextState();
+            rewards[i] = transition.getReward();
         }
-        return chunk;
+        return new MemoryBatch(manager.create(states), manager.create(actions), manager.create(masks), manager.create(nextStates), manager.create(rewards));
     }
 
     public int getSize() {

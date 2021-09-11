@@ -24,7 +24,7 @@ public class Transition {
     /**
      * 执行指定动作后，当前幕是否结束
      */
-    private boolean done;
+    private boolean mask;
     /**
      * 执行指定动作后的环境状态
      */
@@ -34,10 +34,10 @@ public class Transition {
      */
     private float reward;
 
-    public Transition(float[] state, int action, boolean done, float[] nextState, float reward) {
+    public Transition(float[] state, int action, boolean mask, float[] nextState, float reward) {
         this.state = state != null ? state.clone() : null;
         this.action = action;
-        this.done = done;
+        this.mask = mask;
         this.nextState = nextState != null ? nextState.clone() : null;
         this.reward = reward;
     }
@@ -50,8 +50,12 @@ public class Transition {
         return action;
     }
 
-    public boolean isDone() {
-        return done;
+    public void setAction(int action) {
+        this.action = action;
+    }
+
+    public boolean isMasked() {
+        return mask;
     }
 
     public float[] getNextState() {
@@ -68,7 +72,7 @@ public class Transition {
             Map<String, Object> info = new HashMap<>();
             info.put("state", state);
             info.put("action", action);
-            info.put("done", done);
+            info.put("mask", mask);
             info.put("nextState", nextState);
             info.put("reward", reward);
             return new ObjectMapper().writeValueAsString(info);

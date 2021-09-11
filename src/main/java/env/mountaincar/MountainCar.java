@@ -72,13 +72,12 @@ public class MountainCar extends Environment {
     }
 
     @Override
-    public Snapshot reset() {
+    public float[] reset() {
         return null;
     }
 
     @Override
     public void render() {
-
     }
 
     @Override

@@ -7,33 +7,33 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 环境快照
+ * 当Agent与环境进行一次交互后，相关数据的快照
  *
  * @author Caojunqi
  * @date 2021-09-09 22:03
  */
 public class Snapshot {
     /**
-     * 环境状态信息
+     * Agent执行特定行为后，环境的状态
      */
-    private float[] state;
+    private float[] nextState;
     /**
-     * 当前步收益
+     * Agent执行特定行为后，获得的收益
      */
     private float reward;
     /**
-     * 当前幕是否结束，1-结束，0-未结束
+     * Agent执行特定行为后，当前幕是否结束，1-结束，0-未结束
      */
     private boolean done;
 
-    public Snapshot(float[] state, float reward, boolean done) {
-        this.state = state.clone();
+    public Snapshot(float[] nextState, float reward, boolean done) {
+        this.nextState = nextState.clone();
         this.reward = reward;
         this.done = done;
     }
 
-    public float[] getState() {
-        return state;
+    public float[] getNextState() {
+        return nextState;
     }
 
     public float getReward() {
@@ -48,7 +48,7 @@ public class Snapshot {
     public String toString() {
         try {
             Map<String, Object> info = new HashMap<>();
-            info.put("state", state);
+            info.put("nextState", nextState);
             info.put("reward", reward);
             info.put("done", done);
             return new ObjectMapper().writeValueAsString(info);
