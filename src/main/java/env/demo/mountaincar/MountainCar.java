@@ -1,6 +1,8 @@
-package env.mountaincar;
+package env.demo.mountaincar;
 
-import env.Environment;
+import env.common.Environment;
+import env.common.spaces.Box;
+import env.common.spaces.Discrete;
 import utils.datatype.Snapshot;
 
 /*_
@@ -63,7 +65,7 @@ public class MountainCar extends Environment {
     private int episodeLength = 0;
 
     public MountainCar() {
-        super(STATE_SPACE, 3);
+        super(new Box(STATE_SPACE), new Discrete(3));
     }
 
     @Override

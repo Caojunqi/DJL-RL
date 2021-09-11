@@ -1,9 +1,5 @@
-import utils.datatype.Transition;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import env.common.spaces.Box;
+import env.common.spaces.Space;
 
 /**
  * 测试类
@@ -14,13 +10,8 @@ import java.util.List;
 public class MainTest {
 
     public static void main(String[] args) {
-        Transition[] memory = new Transition[3];
-        memory[0] = new Transition(new float[]{1.1f, 1.1f}, 1, true, new float[]{2.1f, 2.1f}, 3.1f);
-        memory[1] = new Transition(new float[]{1.2f, 1.2f}, 2, true, new float[]{2.2f, 2.2f}, 3.2f);
-        memory[2] = new Transition(new float[]{1.3f, 1.3f}, 3, true, new float[]{2.3f, 2.3f}, 3.3f);
-        List<Transition> tmpList = new ArrayList<>(Arrays.asList(memory));
-        Collections.shuffle(tmpList);
-        tmpList.get(0).setAction(10086);
-        System.out.println(memory.length);
+        double[][] STATE_SPACE = new double[][]{{-1.2, 10.6}, {-10.07, 10.07}};
+        Space space = new Box(STATE_SPACE);
+        System.out.println(space.contains(new int[]{11, 2}));
     }
 }

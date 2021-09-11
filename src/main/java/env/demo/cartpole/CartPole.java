@@ -1,4 +1,4 @@
-package env.cartpole;
+package env.demo.cartpole;
 
 /**
  * 复刻gym中的CartPole-v1环境

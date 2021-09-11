@@ -2,7 +2,7 @@ package utils;
 
 import agent.base.BaseAgent;
 import ai.djl.translate.TranslateException;
-import env.Environment;
+import env.common.Environment;
 import utils.datatype.Snapshot;
 
 /**

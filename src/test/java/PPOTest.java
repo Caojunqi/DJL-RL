@@ -1,6 +1,6 @@
 import ai.djl.engine.Engine;
-import env.Environment;
-import env.mountaincar.MountainCar;
+import env.common.Environment;
+import env.demo.mountaincar.MountainCar;
 
 /**
  * PPO算法测试类

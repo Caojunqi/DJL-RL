@@ -1,5 +1,6 @@
-package env;
+package env.common;
 
+import env.common.spaces.Space;
 import utils.datatype.Snapshot;
 
 import java.util.Random;
@@ -39,26 +40,23 @@ public abstract class Environment {
     /**
      * 状态空间
      */
-    private double[][] stateSpace;
+    private Space stateSpace;
+    /**
+     * 动作空间
+     */
+    private Space actionSpace;
     /**
      * 收益取值范围
      */
     private double[] rewardRange;
-    /**
-     * 合理动作的数目
-     */
-    private int actionsNum;
 
-    public Environment(double[][] stateSpace, int actionsNum) {
-        this(stateSpace, actionsNum, new double[]{Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY});
+    public Environment(Space stateSpace, Space actionSpace) {
+        this(stateSpace, actionSpace, new double[]{Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY});
     }
 
-    public Environment(double[][] stateSpace, int actionsNum, double[] rewardRange) {
-        if (stateSpace != null && stateSpace.length <= 0) {
-            throw new IllegalArgumentException("Invalid state space and dimension");
-        }
+    public Environment(Space stateSpace, Space actionSpace, double[] rewardRange) {
         this.stateSpace = stateSpace;
-        this.actionsNum = actionsNum;
+        this.actionSpace = actionSpace;
         this.rewardRange = rewardRange;
     }
 
@@ -111,39 +109,4 @@ public abstract class Environment {
         random.setSeed(seed);
     }
 
-    /**
-     * 获取当前环境的的状态空间中指定维度的取值范围
-     *
-     * @param dim 状态空间维度
-     * @return 状态取值范围，是一个长度为2的double数组，代表最小值和最大值
-     */
-    public double[] getStateSpace(int dim) {
-        if (stateSpace == null) {
-            throw new UnsupportedOperationException("State space has not been specified.");
-        }
-        if (dim < 0 || dim >= stateSpace.length) {
-            throw new IllegalArgumentException("Dimension is between 0 and " + stateSpace.length);
-        }
-        return stateSpace[dim].clone();
-    }
-
-    /**
-     * 获取状态空间全信息
-     *
-     * @return 状态空间各个维度的取值范围，每一项都是一个长度为2的double数组，代表该维度数据的最小值和最大值
-     */
-    public double[][] getStateSpace() {
-        if (stateSpace == null) {
-            throw new UnsupportedOperationException("State space has not been specified.");
-        }
-        double[][] space = new double[stateSpace.length][];
-        for (int i = 0; i < stateSpace.length; i++) {
-            space[i] = stateSpace[i].clone();
-        }
-        return space;
-    }
-
-    public int getActionsNum() {
-        return actionsNum;
-    }
 }

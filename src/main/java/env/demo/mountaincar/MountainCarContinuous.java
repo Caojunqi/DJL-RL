@@ -1,4 +1,4 @@
-package env.mountaincar;
+package env.demo.mountaincar;
 
 /*_
  * 复刻gym中的MountainCarContinuous-v0环境，动作空间是连续的
