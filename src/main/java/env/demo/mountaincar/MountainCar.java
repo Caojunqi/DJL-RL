@@ -3,6 +3,8 @@ package env.demo.mountaincar;
 import env.common.Environment;
 import env.common.spaces.Box;
 import env.common.spaces.Discrete;
+import org.apache.commons.lang3.Validate;
+import utils.Helper;
 import utils.datatype.Snapshot;
 
 /*_
@@ -53,6 +55,8 @@ public class MountainCar extends Environment {
     private static final double[][] STATE_SPACE = new double[][]{{-1.2, 0.6}, {-0.07, 0.07}};
     private static final float MIN_POSITION = -1.2f;
     private static final float MAX_POSITION = 0.6f;
+    private static final float MIN_INITIAL_POSITION = -0.6f;
+    private static final float MAX_INITIAL_POSITION = -0.4f;
     private static final float MAX_SPEED = 0.1f;
     private static final float GOAL_POSITION = 0.5f;
     private static final float GOAL_VELOCITY = 0.0f;
@@ -70,12 +74,28 @@ public class MountainCar extends Environment {
 
     @Override
     public Snapshot step(int action) {
-        return null;
+        Validate.isTrue(actionSpace.contains(action), "action[" + action + "] invalid!!");
+        state[1] += (action - 1) * FORCE - Math.cos(3 * state[0]) * (-GRAVITY);
+        state[1] = Math.min(Math.max(state[1], -MAX_SPEED), MAX_SPEED);
+        state[0] += state[1];
+        state[0] = Math.min(Math.max(state[0], MIN_POSITION), MAX_POSITION);
+
+        if (state[0] == MIN_POSITION && state[1] < 0) {
+            state[1] = 0;
+        }
+        boolean done = ((state[0] >= GOAL_POSITION && state[1] >= GOAL_VELOCITY)
+                || ++episodeLength >= MAX_EPISODE_LENGTH);
+
+        return new Snapshot(state, -1, done);
     }
 
     @Override
     public float[] reset() {
-        return null;
+        episodeLength = 0;
+        float initialPosition = (float) Helper.betweenDouble(MIN_INITIAL_POSITION, MAX_INITIAL_POSITION);
+        this.state[0] = initialPosition;
+        this.state[1] = 0;
+        return this.state;
     }
 
     @Override

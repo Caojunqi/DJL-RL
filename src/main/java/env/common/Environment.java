@@ -40,15 +40,15 @@ public abstract class Environment {
     /**
      * 状态空间
      */
-    private Space stateSpace;
+    protected Space stateSpace;
     /**
      * 动作空间
      */
-    private Space actionSpace;
+    protected Space actionSpace;
     /**
      * 收益取值范围
      */
-    private double[] rewardRange;
+    protected double[] rewardRange;
 
     public Environment(Space stateSpace, Space actionSpace) {
         this(stateSpace, actionSpace, new double[]{Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY});
