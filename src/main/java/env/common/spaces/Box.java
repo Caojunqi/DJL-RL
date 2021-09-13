@@ -23,7 +23,7 @@ public class Box implements Space {
     private double[][] spaces;
 
     public Box(double[][] spaces) {
-        Validate.isTrue(checkValid(spaces), "spaces data is invalid!!");
+        Validate.isTrue(checkValid(spaces), "box spaces data is invalid!!");
         this.spaces = spaces;
     }
 

@@ -1,4 +1,4 @@
-import env.common.spaces.Box;
+import env.common.spaces.MultiDiscrete;
 import env.common.spaces.Space;
 
 /**
@@ -10,8 +10,8 @@ import env.common.spaces.Space;
 public class MainTest {
 
     public static void main(String[] args) {
-        double[][] STATE_SPACE = new double[][]{{-1.2, 10.6}, {-10.07, 10.07}};
-        Space space = new Box(STATE_SPACE);
-        System.out.println(space.contains(new int[]{11, 2}));
+        int[] STATE_SPACE = new int[]{2, 10};
+        Space space = new MultiDiscrete(STATE_SPACE);
+        System.out.println(space.contains(new double[]{1.2, 3.4}));
     }
 }
