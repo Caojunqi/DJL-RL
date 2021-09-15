@@ -1,6 +1,9 @@
 package env.common;
 
-import env.common.spaces.Space;
+import env.common.action.Action;
+import env.common.spaces.action.ActionSpace;
+import env.common.spaces.state.StateSpace;
+import org.apache.commons.lang3.Validate;
 import utils.datatype.Snapshot;
 
 import java.util.Random;
@@ -31,7 +34,7 @@ import java.util.Random;
  * @author Caojunqi
  * @date 2021-09-09 20:59
  */
-public abstract class Environment {
+public abstract class Environment<A extends Action> {
     /**
      * 随机数生成器
      */
@@ -40,21 +43,21 @@ public abstract class Environment {
     /**
      * 状态空间
      */
-    protected Space stateSpace;
+    protected StateSpace stateSpace;
     /**
      * 动作空间
      */
-    protected Space actionSpace;
+    protected ActionSpace<A> actionSpace;
     /**
      * 收益取值范围
      */
     protected double[] rewardRange;
 
-    public Environment(Space stateSpace, Space actionSpace) {
+    public Environment(StateSpace stateSpace, ActionSpace<A> actionSpace) {
         this(stateSpace, actionSpace, new double[]{Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY});
     }
 
-    public Environment(Space stateSpace, Space actionSpace, double[] rewardRange) {
+    public Environment(StateSpace stateSpace, ActionSpace<A> actionSpace, double[] rewardRange) {
         this.stateSpace = stateSpace;
         this.actionSpace = actionSpace;
         this.rewardRange = rewardRange;
@@ -71,7 +74,12 @@ public abstract class Environment {
      *          reward (float) : amount of reward returned after previous action
      *          done (bool): whether the episode has ended, in which case further step() calls will return undefined results
      */
-    public abstract Snapshot step(int action);
+    public final Snapshot step(A action) {
+        Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
+        return doStep(action);
+    }
+
+    protected abstract Snapshot doStep(A action);
 
     /**
      * Resets the environment to an initial state and returns an initial

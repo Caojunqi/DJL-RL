@@ -1,8 +1,9 @@
 package env.demo.mountaincar;
 
 import env.common.Environment;
-import env.common.spaces.Box;
-import env.common.spaces.Discrete;
+import env.common.action.impl.DiscreteAction;
+import env.common.spaces.action.DiscreteActionSpace;
+import env.common.spaces.state.BoxStateSpace;
 import org.apache.commons.lang3.Validate;
 import utils.Helper;
 import utils.datatype.Snapshot;
@@ -51,7 +52,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:28
  */
-public class MountainCar extends Environment {
+public class MountainCar extends Environment<DiscreteAction> {
     private static final double[][] STATE_SPACE = new double[][]{{-1.2, 0.6}, {-0.07, 0.07}};
     private static final float MIN_POSITION = -1.2f;
     private static final float MAX_POSITION = 0.6f;
@@ -70,14 +71,15 @@ public class MountainCar extends Environment {
     private int episodeLength = 0;
 
     public MountainCar(boolean visual) {
-        super(new Box(STATE_SPACE), new Discrete(3));
+        super(new BoxStateSpace(STATE_SPACE), new DiscreteActionSpace(3));
         visualizer = visual ? new MountainCarVisualizer(MIN_POSITION, MAX_POSITION, GOAL_POSITION, 1000) : null;
     }
 
     @Override
-    public Snapshot step(int action) {
-        Validate.isTrue(actionSpace.contains(action), "action[" + action + "] invalid!!");
-        state[1] += (action - 1) * FORCE - Math.cos(3 * state[0]) * (-GRAVITY);
+    protected Snapshot doStep(DiscreteAction action) {
+        Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
+        int actionData = action.getActionData();
+        state[1] += (actionData - 1) * FORCE - Math.cos(3 * state[0]) * (-GRAVITY);
         state[1] = Math.min(Math.max(state[1], -MAX_SPEED), MAX_SPEED);
         state[0] += state[1];
         state[0] = Math.min(Math.max(state[0], MIN_POSITION), MAX_POSITION);

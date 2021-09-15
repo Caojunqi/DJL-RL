@@ -1,6 +1,8 @@
-package agent.base;
+package agent;
 
 import ai.djl.translate.TranslateException;
+import env.common.Environment;
+import env.common.action.Action;
 
 /**
  * RL算法调度器基类
@@ -8,7 +10,15 @@ import ai.djl.translate.TranslateException;
  * @author Caojunqi
  * @date 2021-09-09 21:57
  */
-public abstract class BaseAgent {
+public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
+    /**
+     * 调度器针对的环境
+     */
+    private E env;
+
+    protected BaseAgent(E env) {
+        this.env = env;
+    }
 
     /**
      * 根据指定环境状态选择一个合适的动作
@@ -16,7 +26,7 @@ public abstract class BaseAgent {
      * @param state 环境当前状态
      * @return action 接下来应采取的动作
      */
-    public abstract int selectAction(float[] state);
+    public abstract A selectAction(float[] state);
 
     /**
      * 收集动作执行样本数据
@@ -27,7 +37,7 @@ public abstract class BaseAgent {
      * @param nextState 动作执行之后的环境状态信息
      * @param reward    之前的动作获取到的收益
      */
-    public abstract void collect(float[] state, int action, boolean done, float[] nextState, float reward);
+    public abstract void collect(float[] state, A action, boolean done, float[] nextState, float reward);
 
     /**
      * 更新模型参数

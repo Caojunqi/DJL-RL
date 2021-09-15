@@ -1,4 +1,4 @@
-package agent.model;
+package model;
 
 import ai.djl.ndarray.NDManager;
 import ai.djl.nn.AbstractBlock;

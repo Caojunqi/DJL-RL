@@ -2,6 +2,7 @@ package utils.datatype;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import env.common.action.Action;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +13,7 @@ import java.util.Map;
  * @author Caojunqi
  * @date 2021-09-10 11:44
  */
-public class Transition {
+public class Transition<A extends Action> {
     /**
      * 执行指定动作之前的环境状态
      */
@@ -20,7 +21,7 @@ public class Transition {
     /**
      * 所执行的动作
      */
-    private int action;
+    private A action;
     /**
      * 执行指定动作后，当前幕是否结束
      */
@@ -34,7 +35,7 @@ public class Transition {
      */
     private float reward;
 
-    public Transition(float[] state, int action, boolean mask, float[] nextState, float reward) {
+    public Transition(float[] state, A action, boolean mask, float[] nextState, float reward) {
         this.state = state != null ? state.clone() : null;
         this.action = action;
         this.mask = mask;
@@ -46,11 +47,11 @@ public class Transition {
         return state;
     }
 
-    public int getAction() {
+    public A getAction() {
         return action;
     }
 
-    public void setAction(int action) {
+    public void setAction(A action) {
         this.action = action;
     }
 

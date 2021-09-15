@@ -1,5 +1,13 @@
 package env.demo.mountaincar;
 
+import env.common.Environment;
+import env.common.action.impl.BoxAction;
+import env.common.spaces.action.BoxActionSpace;
+import env.common.spaces.state.BoxStateSpace;
+import org.apache.commons.lang3.Validate;
+import utils.Helper;
+import utils.datatype.Snapshot;
+
 /*_
  * 复刻gym中的MountainCarContinuous-v0环境，动作空间是连续的
  *
@@ -34,5 +42,52 @@ package env.demo.mountaincar;
  * @author Caojunqi
  * @date 2021-09-09 21:29
  */
-public class MountainCarContinuous {
+public class MountainCarContinuous extends Environment<BoxAction> {
+    private static final double[][] STATE_SPACE = new double[][]{{-1.2, 0.6}, {-0.07, 0.07}};
+    private static final double[][] ACTION_SPACE = new double[][]{{-1.0, 1.0}};
+    private static final float MIN_ACTION = -1.0f;
+    private static final float MAX_ACTION = 1.0f;
+    private static final float MIN_POSITION = -1.2f;
+    private static final float MAX_POSITION = 0.6f;
+    private static final float MIN_INITIAL_POSITION = -0.6f;
+    private static final float MAX_INITIAL_POSITION = -0.4f;
+    private static final float MAX_SPEED = 0.1f;
+    private static final float GOAL_POSITION = 0.45f;
+    private static final float GOAL_VELOCITY = 0.0f;
+    private static final float POWER = 0.45f;
+
+    private final float[] state = new float[]{0.0f, 0.0f};
+    private final MountainCarVisualizer visualizer;
+
+    private int episodeLength = 0;
+
+    public MountainCarContinuous(boolean visual) {
+        super(new BoxStateSpace(STATE_SPACE), new BoxActionSpace(ACTION_SPACE));
+        visualizer = visual ? new MountainCarVisualizer(MIN_POSITION, MAX_POSITION, GOAL_POSITION, 1000) : null;
+    }
+
+    @Override
+    public Snapshot doStep(BoxAction action) {
+        Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
+        return null;
+    }
+
+    @Override
+    public float[] reset() {
+        episodeLength = 0;
+        float initialPosition = (float) Helper.betweenDouble(MIN_INITIAL_POSITION, MAX_INITIAL_POSITION);
+        this.state[0] = initialPosition;
+        this.state[1] = 0;
+        return this.state;
+    }
+
+    @Override
+    public void render() {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
 }

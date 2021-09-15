@@ -1,4 +1,4 @@
-package agent.model;
+package model;
 
 import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
