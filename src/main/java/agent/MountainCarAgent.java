@@ -1,7 +1,5 @@
 package agent;
 
-import agent.base.BaseAgent;
-import agent.model.DistributionValueModel;
 import ai.djl.Model;
 import ai.djl.engine.Engine;
 import ai.djl.inference.Predictor;
@@ -17,6 +15,9 @@ import ai.djl.training.tracker.Tracker;
 import ai.djl.translate.NoopTranslator;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
+import env.common.action.impl.DiscreteAction;
+import env.demo.mountaincar.MountainCar;
+import model.DistributionValueModel;
 import utils.ActionSampler;
 import utils.Helper;
 import utils.Memory;
@@ -25,26 +26,20 @@ import utils.MemoryBatch;
 import java.util.Random;
 
 /**
- * PPO算法核心
+ * 针对MountainCar的Agent
  *
  * @author Caojunqi
- * @date 2021-09-09 21:10
+ * @date 2021-09-15 11:09
  */
-public class PPO extends BaseAgent {
+public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
+
     protected Random random = new Random(0);
-    protected Memory memory = new Memory(1024);
+    protected Memory<DiscreteAction> memory = new Memory<>();
     protected Optimizer optimizer;
 
     protected NDManager manager = NDManager.newBaseManager();
     protected Model model;
     protected Predictor<NDList, NDList> predictor;
-
-    /**
-     * 环境参数
-     */
-    private int actionNum;
-    private int stateSpaceDim;
-    private int hiddenSize;
 
     /**
      * GAE参数
@@ -55,16 +50,16 @@ public class PPO extends BaseAgent {
     /**
      * PPO参数
      */
+    private int hiddenSize;
     private int innerUpdates;
     private int innerBatchSize;
     private float ratioLowerBound;
     private float ratioUpperBound;
 
-    public PPO(int stateSpaceDim, int actionNum, int hiddenSize,
-               float gamma, float gaeLambda,
-               float learningRate, int innerUpdates, int innerBatchSize, float ratioClip) {
-        this.stateSpaceDim = stateSpaceDim;
-        this.actionNum = actionNum;
+    public MountainCarAgent(MountainCar env, int hiddenSize,
+                            float gamma, float gaeLambda,
+                            float learningRate, int innerUpdates, int innerBatchSize, float ratioClip) {
+        super(env);
         this.hiddenSize = hiddenSize;
         this.gamma = gamma;
         this.gaeLambda = gaeLambda;
@@ -73,7 +68,7 @@ public class PPO extends BaseAgent {
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        model = DistributionValueModel.newModel(manager, stateSpaceDim, hiddenSize, actionNum);
+        model = DistributionValueModel.newModel(manager, env.getStateSpaceDim(), hiddenSize, env.getActionSpaceDim());
         predictor = model.newPredictor(new NoopTranslator());
         this.innerUpdates = innerUpdates;
         this.innerBatchSize = innerBatchSize;
@@ -82,17 +77,18 @@ public class PPO extends BaseAgent {
     }
 
     @Override
-    public int selectAction(float[] state) {
+    public DiscreteAction selectAction(float[] state) {
         try (NDManager subManager = manager.newSubManager()) {
             NDArray prob = predictor.predict(new NDList(subManager.create(state))).get(0);
-            return ActionSampler.sampleMultinomial(prob, random);
+            int actionData = ActionSampler.sampleMultinomial(prob, random);
+            return new DiscreteAction(actionData);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }
     }
 
     @Override
-    public void collect(float[] state, int action, boolean done, float[] nextState, float reward) {
+    public void collect(float[] state, DiscreteAction action, boolean done, float[] nextState, float reward) {
         memory.addTransition(state, action, done, nextState, reward);
     }
 
