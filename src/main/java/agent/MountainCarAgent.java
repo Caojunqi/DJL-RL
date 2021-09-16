@@ -20,7 +20,6 @@ import env.demo.mountaincar.MountainCar;
 import model.DistributionValueModel;
 import utils.ActionSampler;
 import utils.Helper;
-import utils.Memory;
 import utils.MemoryBatch;
 
 import java.util.Random;
@@ -34,7 +33,6 @@ import java.util.Random;
 public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
 
     protected Random random = new Random(0);
-    protected Memory<DiscreteAction> memory = new Memory<>();
     protected Optimizer optimizer;
 
     protected NDManager manager = NDManager.newBaseManager();
@@ -94,54 +92,56 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
 
     @Override
     public void updateModel() throws TranslateException {
-        NDManager subManager = manager.newSubManager();
-        MemoryBatch batch = memory.sample(subManager);
-        NDArray states = batch.getStates();
-        NDArray actions = batch.getActions();
+        try (NDManager subManager = manager.newSubManager()) {
+            MemoryBatch batch = memory.sample(subManager);
+            NDArray states = batch.getStates();
+            NDArray actions = batch.getActions();
 
-        NDList netOutput = predictor.predict(new NDList(states));
+            NDList netOutput = predictor.predict(new NDList(states));
 
-        NDArray distribution = Helper.gather(netOutput.get(0).duplicate(), actions.toIntArray());
-        NDArray values = netOutput.get(1).duplicate();
+            NDArray distribution = Helper.gather(netOutput.get(0).duplicate(), actions.toIntArray());
+            NDArray values = netOutput.get(1).duplicate();
 
-        NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards());
-        NDArray expectedReturns = estimates.get(0);
-        NDArray advantages = estimates.get(1);
+            NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards());
+            NDArray expectedReturns = estimates.get(0);
+            NDArray advantages = estimates.get(1);
 
-        int[] index = new int[innerBatchSize];
+            int[] index = new int[innerBatchSize];
 
-        for (int i = 0; i < innerUpdates * (1 + batch.size() / innerBatchSize); i++) {
-            for (int j = 0; j < innerBatchSize; j++) {
-                index[j] = random.nextInt(batch.size());
-            }
-            NDArray statesSubset = getSample(subManager, states, index);
-            NDArray actionsSubset = getSample(subManager, actions, index);
-            NDArray distributionSubset = getSample(subManager, distribution, index);
-            NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
-            NDArray advantagesSubset = getSample(subManager, advantages, index);
-
-            NDList netOutputUpdated = predictor.predict(new NDList(statesSubset));
-            NDArray distributionUpdated = Helper.gather(netOutputUpdated.get(0), actionsSubset.toIntArray());
-            NDArray valuesUpdated = netOutputUpdated.get(1);
-
-            NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().sum();
-
-            NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
-
-            NDArray lossActor = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset)
-                    .minimum(ratios.mul(advantagesSubset)).sum().neg();
-            NDArray loss = lossActor.add(lossCritic);
-
-            try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                collector.backward(loss);
-
-                for (Pair<String, Parameter> params : model.getBlock().getParameters()) {
-                    NDArray paramsArr = params.getValue().getArray();
-
-                    optimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+            for (int i = 0; i < innerUpdates * (1 + batch.size() / innerBatchSize); i++) {
+                for (int j = 0; j < innerBatchSize; j++) {
+                    index[j] = random.nextInt(batch.size());
                 }
+                NDArray statesSubset = getSample(subManager, states, index);
+                NDArray actionsSubset = getSample(subManager, actions, index);
+                NDArray distributionSubset = getSample(subManager, distribution, index);
+                NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
+                NDArray advantagesSubset = getSample(subManager, advantages, index);
 
+                NDList netOutputUpdated = predictor.predict(new NDList(statesSubset));
+                NDArray distributionUpdated = Helper.gather(netOutputUpdated.get(0), actionsSubset.toIntArray());
+                NDArray valuesUpdated = netOutputUpdated.get(1);
+
+                NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().sum();
+
+                NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
+
+                NDArray lossActor = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset)
+                        .minimum(ratios.mul(advantagesSubset)).sum().neg();
+                NDArray loss = lossActor.add(lossCritic);
+
+                try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
+                    collector.backward(loss);
+
+                    for (Pair<String, Parameter> params : model.getBlock().getParameters()) {
+                        NDArray paramsArr = params.getValue().getArray();
+
+                        optimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                    }
+                }
             }
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
         }
     }
 

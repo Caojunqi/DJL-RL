@@ -44,6 +44,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
      * @param minBatchSize 每次刷新参数，最少所需样本数量
      */
     private void collectSamples(int minBatchSize) {
+        agent.resetMemory();
         int sampleNum = 0;
         int episodesNum = 0;
         while (sampleNum < minBatchSize) {

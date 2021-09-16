@@ -14,7 +14,7 @@ public interface IActionCollector {
     /**
      * 收集指定动作数据
      */
-    void addAction(Action action);
+    void addAction(int index, Action action);
 
     /**
      * 将数据收集结果构建成一个NDArray

@@ -37,6 +37,10 @@ public class Memory<A extends Action> {
         transitions.add(transition);
     }
 
+    public void reset() {
+        this.transitions.clear();
+    }
+
     /**
      * 将缓存的样本数据随机打乱，用作采样数据
      *
@@ -61,13 +65,13 @@ public class Memory<A extends Action> {
             if (actionCollector == null) {
                 try {
                     Class<?> collectorClz = transition.getAction().getCollectorClz();
-                    Constructor<?> constructor = collectorClz.getConstructor();
-                    actionCollector = (IActionCollector) constructor.newInstance();
+                    Constructor<?> constructor = collectorClz.getConstructor(int.class);
+                    actionCollector = (IActionCollector) constructor.newInstance(batchSize);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }
-            actionCollector.addAction(transition.getAction());
+            actionCollector.addAction(i, transition.getAction());
             masks[i] = transition.isMasked();
             nextStates[i] = transition.getNextState();
             rewards[i] = transition.getReward();

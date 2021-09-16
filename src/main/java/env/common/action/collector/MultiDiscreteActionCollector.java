@@ -6,9 +6,6 @@ import env.common.action.Action;
 import env.common.action.IActionCollector;
 import env.common.action.impl.MultiDiscreteAction;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 多维离散型动作数据收集器
  *
@@ -17,19 +14,19 @@ import java.util.List;
  */
 public class MultiDiscreteActionCollector implements IActionCollector {
 
-    private List<MultiDiscreteAction> actions = new ArrayList<>();
+    private int[][] actionData;
+
+    public MultiDiscreteActionCollector(int batchSize) {
+        this.actionData = new int[batchSize][];
+    }
 
     @Override
-    public void addAction(Action action) {
-        this.actions.add((MultiDiscreteAction) action);
+    public void addAction(int index, Action action) {
+        this.actionData[index] = ((MultiDiscreteAction) action).getActionData();
     }
 
     @Override
     public NDArray createNDArray(NDManager manager) {
-        int[][] data = new int[actions.size()][];
-        for (int i = 0; i < actions.size(); i++) {
-            data[i] = actions.get(i).getActionData();
-        }
-        return manager.create(data);
+        return manager.create(actionData);
     }
 }

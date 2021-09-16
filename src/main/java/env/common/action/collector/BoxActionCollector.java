@@ -6,9 +6,6 @@ import env.common.action.Action;
 import env.common.action.IActionCollector;
 import env.common.action.impl.BoxAction;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 连续型动作数据收集器
  *
@@ -17,19 +14,19 @@ import java.util.List;
  */
 public class BoxActionCollector implements IActionCollector {
 
-    private List<BoxAction> actions = new ArrayList<>();
+    private double[][] actionData;
+
+    public BoxActionCollector(int batchSize) {
+        this.actionData = new double[batchSize][];
+    }
 
     @Override
-    public void addAction(Action action) {
-        this.actions.add((BoxAction) action);
+    public void addAction(int index, Action action) {
+        this.actionData[index] = ((BoxAction) action).getActionData();
     }
 
     @Override
     public NDArray createNDArray(NDManager manager) {
-        double[][] data = new double[actions.size()][];
-        for (int i = 0; i < actions.size(); i++) {
-            data[i] = actions.get(i).getActionData();
-        }
-        return manager.create(data);
+        return manager.create(actionData);
     }
 }

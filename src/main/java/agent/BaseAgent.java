@@ -3,6 +3,7 @@ package agent;
 import ai.djl.translate.TranslateException;
 import env.common.Environment;
 import env.common.action.Action;
+import utils.Memory;
 
 /**
  * RL算法调度器基类
@@ -15,6 +16,10 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
      * 调度器针对的环境
      */
     private E env;
+    /**
+     * 样本缓存
+     */
+    protected Memory<A> memory = new Memory<>();
 
     protected BaseAgent(E env) {
         this.env = env;
@@ -43,4 +48,11 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
      * 更新模型参数
      */
     public abstract void updateModel() throws TranslateException;
+
+    /**
+     * 重置样本缓存
+     */
+    public void resetMemory() {
+        this.memory.reset();
+    }
 }
