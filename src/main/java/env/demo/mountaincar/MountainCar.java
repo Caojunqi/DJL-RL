@@ -5,7 +5,6 @@ import env.common.action.impl.DiscreteAction;
 import env.common.spaces.action.DiscreteActionSpace;
 import env.common.spaces.state.BoxStateSpace;
 import org.apache.commons.lang3.Validate;
-import utils.Helper;
 import utils.datatype.Snapshot;
 
 /*_
@@ -96,8 +95,7 @@ public class MountainCar extends Environment<DiscreteAction> {
     @Override
     public float[] reset() {
         episodeLength = 0;
-        float initialPosition = (float) Helper.betweenDouble(MIN_INITIAL_POSITION, MAX_INITIAL_POSITION);
-        this.state[0] = initialPosition;
+        this.state[0] = random.nextFloat() * 0.2f - 0.6f;
         this.state[1] = 0;
         return this.state;
     }

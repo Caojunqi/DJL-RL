@@ -43,24 +43,27 @@ public class Runner<A extends Action, E extends Environment<A>> {
         int sampleNum = 0;
         int episodesNum = 0;
         while (sampleNum < minBatchSize) {
-            float[] state = env.reset();
+            float[] state = env.reset().clone();
             boolean done = false;
             int step = 0;
+            float episodeReward = 0;
 
             while (step < MAX_STEP_ONE_EPISODE && !done) {
                 env.render();
                 A action = agent.selectAction(state);
                 Snapshot snapshot = env.step(action);
-
+                episodeReward += snapshot.getReward();
                 agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
                 done = snapshot.isDone();
-                state = snapshot.getNextState();
+                state = snapshot.getNextState().clone();
                 step++;
             }
 
             sampleNum += step;
             episodesNum += 1;
+
+            System.out.println("episode[" + episodesNum + "], reward[" + episodeReward + "]");
         }
     }
 }
