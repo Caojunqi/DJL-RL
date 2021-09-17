@@ -1,7 +1,6 @@
 package utils;
 
 import agent.BaseAgent;
-import ai.djl.translate.TranslateException;
 import env.common.Environment;
 import env.common.action.Action;
 import utils.datatype.Snapshot;
@@ -29,11 +28,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
     public void mainLoop(int maxIterNum, int minBatchSize) {
         for (int i = 0; i < maxIterNum; i++) {
             collectSamples(minBatchSize);
-            try {
-                agent.updateModel();
-            } catch (TranslateException e) {
-                throw new IllegalStateException(e);
-            }
+            agent.updateModel();
             System.out.println("完成===" + i);
         }
     }

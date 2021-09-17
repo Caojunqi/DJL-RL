@@ -17,7 +17,8 @@ import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import env.common.action.impl.DiscreteAction;
 import env.demo.mountaincar.MountainCar;
-import model.DistributionValueModel;
+import model.CriticValueModel;
+import model.DiscretePolicyModel;
 import utils.ActionSampler;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -36,8 +37,10 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
     protected Optimizer optimizer;
 
     protected NDManager manager = NDManager.newBaseManager();
-    protected Model model;
-    protected Predictor<NDList, NDList> predictor;
+    protected Model policyModel;
+    protected Model valueModel;
+    protected Predictor<NDList, NDList> policyPredictor;
+    protected Predictor<NDList, NDList> valuePredictor;
 
     /**
      * GAE参数
@@ -48,17 +51,15 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
     /**
      * PPO参数
      */
-    private int hiddenSize;
     private int innerUpdates;
     private int innerBatchSize;
     private float ratioLowerBound;
     private float ratioUpperBound;
 
-    public MountainCarAgent(MountainCar env, int hiddenSize,
+    public MountainCarAgent(MountainCar env,
                             float gamma, float gaeLambda,
                             float learningRate, int innerUpdates, int innerBatchSize, float ratioClip) {
         super(env);
-        this.hiddenSize = hiddenSize;
         this.gamma = gamma;
         this.gaeLambda = gaeLambda;
         this.optimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(learningRate)).build();
@@ -66,8 +67,10 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        model = DistributionValueModel.newModel(manager, env.getStateSpaceDim(), hiddenSize, env.getActionSpaceDim());
-        predictor = model.newPredictor(new NoopTranslator());
+        policyModel = DiscretePolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
+        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
+        policyPredictor = policyModel.newPredictor(new NoopTranslator());
+        valuePredictor = valueModel.newPredictor(new NoopTranslator());
         this.innerUpdates = innerUpdates;
         this.innerBatchSize = innerBatchSize;
         this.ratioLowerBound = 1.0f - ratioClip;
@@ -77,7 +80,7 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
     @Override
     public DiscreteAction selectAction(float[] state) {
         try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = predictor.predict(new NDList(subManager.create(state))).get(0);
+            NDArray prob = policyPredictor.predict(new NDList(subManager.create(state))).singletonOrThrow();
             int actionData = ActionSampler.sampleMultinomial(prob, random);
             return new DiscreteAction(actionData);
         } catch (TranslateException e) {
@@ -91,16 +94,17 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
     }
 
     @Override
-    public void updateModel() throws TranslateException {
+    public void updateModel() {
         try (NDManager subManager = manager.newSubManager()) {
             MemoryBatch batch = memory.sample(subManager);
             NDArray states = batch.getStates();
             NDArray actions = batch.getActions();
 
-            NDList netOutput = predictor.predict(new NDList(states));
+            NDList policyOutput = policyPredictor.predict(new NDList(states));
+            NDArray distribution = Helper.gather(policyOutput.singletonOrThrow().duplicate(), actions.toIntArray());
 
-            NDArray distribution = Helper.gather(netOutput.get(0).duplicate(), actions.toIntArray());
-            NDArray values = netOutput.get(1).duplicate();
+            NDList valueOutput = valuePredictor.predict(new NDList(states));
+            NDArray values = valueOutput.singletonOrThrow().duplicate();
 
             NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards());
             NDArray expectedReturns = estimates.get(0);
@@ -118,9 +122,10 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
                 NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
                 NDArray advantagesSubset = getSample(subManager, advantages, index);
 
-                NDList netOutputUpdated = predictor.predict(new NDList(statesSubset));
-                NDArray distributionUpdated = Helper.gather(netOutputUpdated.get(0), actionsSubset.toIntArray());
-                NDArray valuesUpdated = netOutputUpdated.get(1);
+                NDList policyOutputUpdated = policyPredictor.predict(new NDList(statesSubset));
+                NDList valueOutputUpdated = valuePredictor.predict(new NDList(statesSubset));
+                NDArray distributionUpdated = Helper.gather(policyOutputUpdated.singletonOrThrow(), actionsSubset.toIntArray());
+                NDArray valuesUpdated = valueOutputUpdated.singletonOrThrow();
 
                 NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().sum();
 
@@ -128,14 +133,22 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
 
                 NDArray lossActor = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset)
                         .minimum(ratios.mul(advantagesSubset)).sum().neg();
-                NDArray loss = lossActor.add(lossCritic);
+//                NDArray loss = lossActor.add(lossCritic);
 
+                // update critic
                 try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                    collector.backward(loss);
-
-                    for (Pair<String, Parameter> params : model.getBlock().getParameters()) {
+                    collector.backward(lossCritic);
+                    for (Pair<String, Parameter> params : valueModel.getBlock().getParameters()) {
                         NDArray paramsArr = params.getValue().getArray();
+                        optimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                    }
+                }
 
+                // update policy
+                try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
+                    collector.backward(lossActor);
+                    for (Pair<String, Parameter> params : policyModel.getBlock().getParameters()) {
+                        NDArray paramsArr = params.getValue().getArray();
                         optimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                     }
                 }

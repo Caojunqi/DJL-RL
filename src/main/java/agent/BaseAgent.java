@@ -1,6 +1,5 @@
 package agent;
 
-import ai.djl.translate.TranslateException;
 import env.common.Environment;
 import env.common.action.Action;
 import utils.Memory;
@@ -47,7 +46,7 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
     /**
      * 更新模型参数
      */
-    public abstract void updateModel() throws TranslateException;
+    public abstract void updateModel();
 
     /**
      * 重置样本缓存

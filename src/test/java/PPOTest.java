@@ -15,7 +15,7 @@ public class PPOTest {
         Engine.getInstance().setRandomSeed(0);
         MountainCar env = new MountainCar(false);
         env.seed(0);
-        new Runner<>(new MountainCarAgent(env, 64, 0.99f, 0.95f, 0.001f, 16, 8, 0.2f), env)
+        new Runner<>(new MountainCarAgent(env, 0.99f, 0.95f, 0.001f, 16, 8, 0.2f), env)
                 .mainLoop(100, 1000);
     }
 }
