@@ -33,6 +33,14 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
     public abstract A selectAction(float[] state);
 
     /**
+     * 采用贪婪策略，为指定环境状态选择一个确定的动作
+     *
+     * @param state 环境当前状态
+     * @return 确定动作
+     */
+    public abstract A greedyAction(float[] state);
+
+    /**
      * 收集动作执行样本数据
      *
      * @param state     动作执行之前的环境状态信息

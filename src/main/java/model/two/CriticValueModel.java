@@ -1,4 +1,4 @@
-package model;
+package model.two;
 
 import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
@@ -12,8 +12,11 @@ import ai.djl.nn.Parameter;
 import ai.djl.nn.SequentialBlock;
 import ai.djl.nn.core.Linear;
 import ai.djl.training.ParameterStore;
+import ai.djl.training.initializer.Initializer;
+import ai.djl.training.initializer.UniformInitializer;
 import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.util.PairList;
+import model.BaseModel;
 
 /**
  * 状态价值函数近似模型
@@ -31,6 +34,7 @@ public class CriticValueModel extends BaseModel {
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
             affineLayers.add(Linear.builder().setUnits(hiddenNum).build());
+            affineLayers.add(Activation::tanh);
         }
         this.hiddenSize = hiddenSize;
         this.affineLayer = addChildBlock("affine_layer", affineLayers);
@@ -52,8 +56,7 @@ public class CriticValueModel extends BaseModel {
 
     @Override
     protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
-        NDList hidden = new NDList(
-                Activation.tanh(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow()));
+        NDList hidden = new NDList(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow());
         NDArray value = valueHead.forward(parameterStore, hidden, training).singletonOrThrow();
         return new NDList(value);
     }
@@ -65,8 +68,11 @@ public class CriticValueModel extends BaseModel {
 
     @Override
     public void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
-        setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
+        this.affineLayer.setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
         this.affineLayer.initialize(manager, dataType, inputShapes[0]);
+
+        this.valueHead.setInitializer(new UniformInitializer(), Parameter.Type.WEIGHT);
+        this.valueHead.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
         this.valueHead.initialize(manager, dataType, new Shape(hiddenSize[hiddenSize.length - 1]));
     }
 }

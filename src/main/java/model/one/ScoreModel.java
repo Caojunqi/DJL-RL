@@ -1,4 +1,4 @@
-package model;
+package model.one;
 
 import ai.djl.Model;
 import ai.djl.ndarray.NDList;
@@ -12,6 +12,7 @@ import ai.djl.nn.core.Linear;
 import ai.djl.training.ParameterStore;
 import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.util.PairList;
+import model.BaseModel;
 
 /**
  * @author Caojunqi

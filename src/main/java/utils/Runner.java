@@ -12,11 +12,6 @@ import utils.datatype.Snapshot;
  * @date 2021-09-09 21:59
  */
 public class Runner<A extends Action, E extends Environment<A>> {
-    /**
-     * 一幕允许的最大步数
-     */
-    private static final int MAX_STEP_ONE_EPISODE = 10000;
-
     private final BaseAgent<A, E> agent;
     private final Environment<A> env;
 
@@ -48,7 +43,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
             int step = 0;
             float episodeReward = 0;
 
-            while (step < MAX_STEP_ONE_EPISODE && !done) {
+            while (!done) {
                 env.render();
                 A action = agent.selectAction(state);
                 Snapshot snapshot = env.step(action);

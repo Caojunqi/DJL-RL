@@ -17,8 +17,8 @@ import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import env.common.action.impl.DiscreteAction;
 import env.demo.mountaincar.MountainCar;
-import model.CriticValueModel;
-import model.DiscretePolicyModel;
+import model.two.CriticValueModel;
+import model.two.DiscretePolicyModel;
 import utils.ActionSampler;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -82,6 +82,17 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
         try (NDManager subManager = manager.newSubManager()) {
             NDArray prob = policyPredictor.predict(new NDList(subManager.create(state))).singletonOrThrow();
             int actionData = ActionSampler.sampleMultinomial(prob, random);
+            return new DiscreteAction(actionData);
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public DiscreteAction greedyAction(float[] state) {
+        try (NDManager subManager = manager.newSubManager()) {
+            NDArray prob = policyPredictor.predict(new NDList(subManager.create(state))).singletonOrThrow();
+            int actionData = ActionSampler.greedy(prob);
             return new DiscreteAction(actionData);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);

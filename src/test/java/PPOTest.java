@@ -15,7 +15,7 @@ public class PPOTest {
         Engine.getInstance().setRandomSeed(0);
         CartPole env = new CartPole(false);
         env.seed(0);
-        new Runner<>(new CartPoleAgent(env, 0.99f, 0.95f, 0.001f, 16, 8, 0.2f), env)
-                .mainLoop(100, 1000);
+        new Runner<>(new CartPoleAgent(env, 0.99f, 0.95f, 3e-4f, 10, 64, 0.2f), env)
+                .mainLoop(500, 2048);
     }
 }

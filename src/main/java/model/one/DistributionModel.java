@@ -1,4 +1,4 @@
-package model;
+package model.one;
 
 import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
@@ -8,6 +8,7 @@ import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
+import model.BaseModel;
 
 /**
  * @author Caojunqi

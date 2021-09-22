@@ -8,7 +8,6 @@ import utils.datatype.Transition;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,7 +48,7 @@ public class Memory<A extends Action> {
      */
     public MemoryBatch sample(NDManager manager) {
         List<Transition<A>> tmpList = new ArrayList<>(transitions);
-        Collections.shuffle(tmpList);
+//        Collections.shuffle(tmpList);
         int batchSize = tmpList.size();
         Validate.isTrue(batchSize > 0, "采样异常，当前缓存样本数量为0！！");
 

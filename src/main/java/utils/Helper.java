@@ -3,6 +3,9 @@ package utils;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.types.Shape;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -42,5 +45,18 @@ public final class Helper {
             return min;
         }
         return min + ThreadLocalRandom.current().nextDouble(max - min);
+    }
+
+    public static void shuffleArray(int[] array) {
+        List<Integer> list = new ArrayList<>();
+        for (int i : array) {
+            list.add(i);
+        }
+
+        Collections.shuffle(list);
+
+        for (int i = 0; i < list.size(); i++) {
+            array[i] = list.get(i);
+        }
     }
 }
