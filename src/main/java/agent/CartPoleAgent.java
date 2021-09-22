@@ -71,8 +71,8 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        policyModel = DiscretePolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim(), new int[]{3});
-        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim(), new int[]{3});
+        policyModel = DiscretePolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
+        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
         policyPredictor = policyModel.newPredictor(new NoopTranslator());
         valuePredictor = valueModel.newPredictor(new NoopTranslator());
         this.innerUpdates = innerUpdates;
@@ -158,8 +158,10 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
                     NDArray distributionUpdated = Helper.gather(policyOutputUpdated.singletonOrThrow(), actionsSubset.toIntArray());
                     NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
 
-                    NDArray lossActor = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset)
-                            .minimum(ratios.mul(advantagesSubset)).mean().neg();
+                    NDArray surr1 = ratios.mul(advantagesSubset);
+                    NDArray surr2 = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset);
+                    NDArray lossActor = surr1.minimum(surr2).mean().neg();
+
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(lossActor);
                         for (Pair<String, Parameter> params : policyModel.getBlock().getParameters()) {
@@ -176,8 +178,8 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
 
     private NDList estimateAdvantage(NDArray values, NDArray rewards, NDArray masks) {
         NDManager manager = rewards.getManager();
-        NDArray deltas = manager.create(rewards.getShape());
-        NDArray advantages = manager.create(rewards.getShape());
+        NDArray deltas = manager.create(rewards.getShape().add(1));
+        NDArray advantages = manager.create(rewards.getShape().add(1));
 
         float prevValue = 0;
         float prevAdvantage = 0;
@@ -191,7 +193,7 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
             prevAdvantage = advantages.getFloat(i);
         }
 
-        NDArray expected_returns = values.squeeze().add(advantages);
+        NDArray expected_returns = values.add(advantages);
         NDArray advantagesMean = advantages.mean();
         NDArray advantagesStd = advantages.sub(advantagesMean).pow(2).sum().div(advantages.size() - 1).sqrt();
         advantages = advantages.sub(advantagesMean).div(advantagesStd);

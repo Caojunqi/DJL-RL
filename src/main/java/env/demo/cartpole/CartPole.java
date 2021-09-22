@@ -120,14 +120,6 @@ public class CartPole extends Environment<DiscreteAction> {
         return state;
     }
 
-    // TODO delete
-    public void testReset(float[] states) {
-        state[0] = states[0];
-        state[1] = states[1];
-        state[2] = states[2];
-        state[3] = states[3];
-    }
-
     @Override
     public void render() {
         if (visualizer != null) {

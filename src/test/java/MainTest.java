@@ -1,5 +1,5 @@
-import env.common.action.impl.DiscreteAction;
-import env.demo.cartpole.CartPole;
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDManager;
 
 /**
  * 测试类
@@ -10,11 +10,10 @@ import env.demo.cartpole.CartPole;
 public class MainTest {
 
     public static void main(String[] args) {
-        CartPole cartPole = new CartPole(false);
-        float[] state = new float[]{0.03073904f, 0.00145001f, -0.03088818f, -0.03131252f};
-        cartPole.testReset(state);
-        cartPole.step(new DiscreteAction(1));
-        System.out.println(state);
+        NDManager manager = NDManager.newBaseManager();
+        NDArray nd = manager.create(new float[][]{{0.9896f}, {0.0204f}, {-1.0100f}});
+        NDArray mean = nd.mean();
+        System.out.println("ccccc");
     }
 
 }
