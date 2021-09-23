@@ -24,11 +24,14 @@ public class BoxActionSpace implements ActionSpace<BoxAction> {
     @Override
     public boolean canStep(BoxAction action) {
         double[] actionData = action.getActionData();
-        for (int i = 0; i < actionData.length; i++) {
-            if (actionData[i] < spaces[i][0] || actionData[i] > spaces[i][1]) {
-                return false;
-            }
+        if (actionData.length != spaces.length) {
+            return false;
         }
+//        for (int i = 0; i < actionData.length; i++) {
+//            if (actionData[i] < spaces[i][0] || actionData[i] > spaces[i][1]) {
+//                return false;
+//            }
+//        }
         return true;
     }
 

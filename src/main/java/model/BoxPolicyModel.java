@@ -36,14 +36,19 @@ public class BoxPolicyModel extends BaseModel {
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
             affineLayers.add(Linear.builder().setUnits(hiddenNum).build());
+            affineLayers.add(Activation::tanh);
         }
         this.actionDim = actionDim;
         this.hiddenSize = hiddenSize;
         this.logStd = logStd;
         this.affineLayer = addChildBlock("affine_layer", affineLayers);
         this.actionMean = addChildBlock("action_mean", Linear.builder().setUnits(actionDim).build());
-        this.actionLogStd = addParameter(Parameter.builder().setName(ACTION_LOG_STD_PARAMETER).optRequiresGrad(true).optShape(new Shape(1, actionDim)).build());
-
+        this.actionLogStd = addParameter(Parameter.builder().
+                setType(Parameter.Type.OTHER).
+                setName(ACTION_LOG_STD_PARAMETER).
+                optInitializer(new ActionLogStdInitializer()).
+                optRequiresGrad(true).
+                optShape(new Shape(1, actionDim)).build());
     }
 
     public static Model newModel(NDManager manager, int stateDim, int actionDim) {
@@ -70,11 +75,11 @@ public class BoxPolicyModel extends BaseModel {
 
     @Override
     protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
-        NDList hidden = new NDList(
-                Activation.tanh(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow()));
+        NDList hidden = new NDList(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow());
         NDArray mean = actionMean.forward(parameterStore, hidden, training).singletonOrThrow();
-        NDArray std = actionLogStd.getArray().exp();
-        return new NDList(mean, actionLogStd.getArray(), std);
+        NDArray logStd = actionLogStd.getArray().duplicate();
+        NDArray std = logStd.exp();
+        return new NDList(mean, logStd, std);
     }
 
     @Override
@@ -85,7 +90,6 @@ public class BoxPolicyModel extends BaseModel {
     @Override
     public void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
         setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
-        setInitializer(new ActionLogStdInitializer(), ACTION_LOG_STD_PARAMETER);
         this.affineLayer.initialize(manager, dataType, inputShapes[0]);
         this.actionMean.initialize(manager, dataType, new Shape(hiddenSize[hiddenSize.length - 1]));
     }

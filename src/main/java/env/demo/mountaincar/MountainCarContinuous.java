@@ -5,7 +5,6 @@ import env.common.action.impl.BoxAction;
 import env.common.spaces.action.BoxActionSpace;
 import env.common.spaces.state.BoxStateSpace;
 import org.apache.commons.lang3.Validate;
-import utils.Helper;
 import utils.datatype.Snapshot;
 
 /*_
@@ -69,21 +68,53 @@ public class MountainCarContinuous extends Environment<BoxAction> {
     @Override
     public Snapshot doStep(BoxAction action) {
         Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
-        return null;
+        double[] actionData = action.getActionData();
+        float position = this.state[0];
+        float velocity = this.state[1];
+        double force = Math.min(Math.max(actionData[0], MIN_ACTION), MAX_ACTION);
+        velocity += force * POWER - 0.0025 * Math.cos(3 * position);
+        if (velocity > MAX_SPEED) {
+            velocity = MAX_SPEED;
+        }
+        if (velocity < -MAX_SPEED) {
+            velocity = -MAX_SPEED;
+        }
+        position += velocity;
+        if (position > MAX_POSITION) {
+            position = MAX_POSITION;
+        }
+        if (position < MIN_POSITION) {
+            position = MIN_POSITION;
+        }
+        if (position == MIN_POSITION && velocity < 0) {
+            velocity = 0;
+        }
+        boolean done = position >= GOAL_POSITION && velocity >= GOAL_VELOCITY;
+
+        float reward = 0;
+        if (done) {
+            reward = 100;
+        }
+        reward -= Math.pow(actionData[0], 2) * 0.1;
+
+        this.state[0] = position;
+        this.state[1] = velocity;
+        return new Snapshot(state, reward, done);
     }
 
     @Override
     public float[] reset() {
         episodeLength = 0;
-        float initialPosition = (float) Helper.betweenDouble(MIN_INITIAL_POSITION, MAX_INITIAL_POSITION);
-        this.state[0] = initialPosition;
+        this.state[0] = random.nextFloat() * 0.2f - 0.6f;
         this.state[1] = 0;
         return this.state;
     }
 
     @Override
     public void render() {
-
+        if (visualizer != null) {
+            visualizer.update(state);
+        }
     }
 
     @Override
