@@ -27,7 +27,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 /**
- * 针对MountainCar的Agent
+ * 针对CartPole的Agent
  *
  * @author Caojunqi
  * @date 2021-09-15 11:09
