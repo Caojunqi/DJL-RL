@@ -77,7 +77,7 @@ public class BoxPolicyModelBlock extends BaseModelBlock {
     protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
         NDList hidden = new NDList(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow());
         NDArray mean = actionMean.forward(parameterStore, hidden, training).singletonOrThrow();
-        NDArray logStd = actionLogStd.getArray().duplicate();
+        NDArray logStd = actionLogStd.getArray().broadcast(mean.getShape()).duplicate();
         NDArray std = logStd.exp();
         return new NDList(mean, logStd, std);
     }
