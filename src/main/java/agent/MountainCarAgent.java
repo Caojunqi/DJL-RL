@@ -79,8 +79,10 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
 
     @Override
     public DiscreteAction selectAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
         try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = policyPredictor.predict(new NDList(subManager.create(state))).singletonOrThrow();
+            NDArray prob = policyPredictor.predict(new NDList(subManager.create(states))).singletonOrThrow();
             int actionData = ActionSampler.sampleMultinomial(prob, random);
             return new DiscreteAction(actionData);
         } catch (TranslateException e) {
@@ -90,8 +92,10 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
 
     @Override
     public DiscreteAction greedyAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
         try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = policyPredictor.predict(new NDList(subManager.create(state))).singletonOrThrow();
+            NDArray prob = policyPredictor.predict(new NDList(subManager.create(states))).singletonOrThrow();
             int actionData = ActionSampler.greedy(prob);
             return new DiscreteAction(actionData);
         } catch (TranslateException e) {

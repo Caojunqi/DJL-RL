@@ -83,8 +83,10 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
 
     @Override
     public BoxAction selectAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
         try (NDManager subManager = manager.newSubManager()) {
-            NDList distribution = policyPredictor.predict(new NDList(subManager.create(state)));
+            NDList distribution = policyPredictor.predict(new NDList(subManager.create(states)));
             double[] actionData = ActionSampler.sampleNormal(distribution.get(0), distribution.get(2), random);
             return new BoxAction(actionData);
         } catch (TranslateException e) {
@@ -159,7 +161,7 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
                     NDList policyOutputUpdated = policyPredictor.predict(new NDList(statesSubset));
                     NDArray distributionUpdated = normalLogDensity(actionsSubset, policyOutputUpdated.get(0), policyOutputUpdated.get(1), policyOutputUpdated.get(2));
                     distributionUpdated = distributionUpdated.exp();
-                    NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
+                    NDArray ratios = distributionUpdated.div(distributionSubset);
 
                     NDArray surr1 = ratios.mul(advantagesSubset);
                     NDArray surr2 = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset);
