@@ -1,4 +1,4 @@
-package model;
+package model.block;
 
 import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
@@ -18,39 +18,37 @@ import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.util.PairList;
 
 /**
- * 用于生成离散型动作的策略模型
+ * 状态价值函数近似模型
  *
  * @author Caojunqi
- * @date 2021-09-16 15:40
+ * @date 2021-09-16 18:06
  */
-public class DiscretePolicyModel extends BaseModel {
-    private int actionNum;
+public class CriticValueModelBlock extends BaseModelBlock {
     private int[] hiddenSize;
     private Block affineLayer;
-    private Block actionHead;
+    private Block valueHead;
 
-    private DiscretePolicyModel(NDManager manager, int actionNum, int[] hiddenSize) {
-        super(manager);
+    private CriticValueModelBlock(int[] hiddenSize) {
+        super();
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
             affineLayers.add(Linear.builder().setUnits(hiddenNum).build());
             affineLayers.add(Activation::tanh);
         }
-        this.actionNum = actionNum;
         this.hiddenSize = hiddenSize;
         this.affineLayer = addChildBlock("affine_layer", affineLayers);
-        this.actionHead = addChildBlock("action_head", Linear.builder().setUnits(actionNum).build());
+        this.valueHead = addChildBlock("value_head", Linear.builder().setUnits(1).build());
     }
 
-    public static Model newModel(NDManager manager, int stateDim, int actionNum) {
+    public static Model newModel(NDManager manager, int stateDim) {
         int[] hiddenSize = new int[]{128, 128};
-        return newModel(manager, stateDim, actionNum, hiddenSize);
+        return newModel(manager, stateDim, hiddenSize);
     }
 
-    public static Model newModel(NDManager manager, int stateDim, int actionNum, int[] hiddenSize) {
-        Model model = Model.newInstance("discrete_policy_model");
-        BaseModel net = new DiscretePolicyModel(manager, actionNum, hiddenSize);
-        net.initialize(net.getManager(), DataType.FLOAT32, new Shape(stateDim));
+    public static Model newModel(NDManager manager, int stateDim, int[] hiddenSize) {
+        Model model = Model.newInstance("critic_value_model");
+        BaseModelBlock net = new CriticValueModelBlock(hiddenSize);
+        net.initialize(manager, DataType.FLOAT32, new Shape(stateDim));
         model.setBlock(net);
         return model;
     }
@@ -58,14 +56,13 @@ public class DiscretePolicyModel extends BaseModel {
     @Override
     protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
         NDList hidden = new NDList(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow());
-        NDArray scores = actionHead.forward(parameterStore, hidden, training).singletonOrThrow();
-        NDArray distribution = scores.softmax(scores.getShape().dimension() - 1);
-        return new NDList(distribution);
+        NDArray value = valueHead.forward(parameterStore, hidden, training).singletonOrThrow();
+        return new NDList(value);
     }
 
     @Override
     public Shape[] getOutputShapes(Shape[] inputShapes) {
-        return new Shape[]{new Shape(actionNum)};
+        return new Shape[]{new Shape(1)};
     }
 
     @Override
@@ -73,9 +70,8 @@ public class DiscretePolicyModel extends BaseModel {
         this.affineLayer.setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
         this.affineLayer.initialize(manager, dataType, inputShapes[0]);
 
-        this.actionHead.setInitializer(new UniformInitializer(), Parameter.Type.WEIGHT);
-        this.actionHead.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
-        this.actionHead.initialize(manager, dataType, new Shape(hiddenSize[hiddenSize.length - 1]));
+        this.valueHead.setInitializer(new UniformInitializer(), Parameter.Type.WEIGHT);
+        this.valueHead.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
+        this.valueHead.initialize(manager, dataType, new Shape(hiddenSize[hiddenSize.length - 1]));
     }
-
 }

@@ -1,4 +1,4 @@
-package model;
+package model.block;
 
 import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
@@ -22,7 +22,7 @@ import ai.djl.util.PairList;
  * @author Caojunqi
  * @date 2021-09-16 18:13
  */
-public class BoxPolicyModel extends BaseModel {
+public class BoxPolicyModelBlock extends BaseModelBlock {
     private final String ACTION_LOG_STD_PARAMETER = "action_log_std";
     private int actionDim;
     private int[] hiddenSize;
@@ -31,8 +31,8 @@ public class BoxPolicyModel extends BaseModel {
     private Block actionMean;
     private Parameter actionLogStd;
 
-    private BoxPolicyModel(NDManager manager, int actionDim, int[] hiddenSize, float logStd) {
-        super(manager);
+    public BoxPolicyModelBlock(int actionDim, int[] hiddenSize, float logStd) {
+        super();
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
             affineLayers.add(Linear.builder().setUnits(hiddenNum).build());
@@ -67,8 +67,8 @@ public class BoxPolicyModel extends BaseModel {
 
     public static Model newModel(NDManager manager, int stateDim, int actionDim, int[] hiddenSize, float logStd) {
         Model model = Model.newInstance("box_policy_model");
-        BaseModel net = new BoxPolicyModel(manager, actionDim, hiddenSize, logStd);
-        net.initialize(net.getManager(), DataType.FLOAT32, new Shape(stateDim));
+        BaseModelBlock net = new BoxPolicyModelBlock(actionDim, hiddenSize, logStd);
+        net.initialize(manager, DataType.FLOAT32, new Shape(stateDim));
         model.setBlock(net);
         return model;
     }

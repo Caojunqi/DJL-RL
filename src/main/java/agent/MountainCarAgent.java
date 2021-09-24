@@ -17,8 +17,8 @@ import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import env.common.action.impl.DiscreteAction;
 import env.demo.mountaincar.MountainCar;
-import model.CriticValueModel;
-import model.DiscretePolicyModel;
+import model.block.CriticValueModelBlock;
+import model.block.DiscretePolicyModelBlock;
 import utils.ActionSampler;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -67,8 +67,8 @@ public class MountainCarAgent extends BaseAgent<DiscreteAction, MountainCar> {
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        policyModel = DiscretePolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
-        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
+        policyModel = DiscretePolicyModelBlock.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
+        valueModel = CriticValueModelBlock.newModel(manager, env.getStateSpaceDim());
         policyPredictor = policyModel.newPredictor(new NoopTranslator());
         valuePredictor = valueModel.newPredictor(new NoopTranslator());
         this.innerUpdates = innerUpdates;

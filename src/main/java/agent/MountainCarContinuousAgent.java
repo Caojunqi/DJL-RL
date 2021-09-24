@@ -17,8 +17,8 @@ import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import env.common.action.impl.BoxAction;
 import env.demo.mountaincar.MountainCarContinuous;
-import model.BoxPolicyModel;
-import model.CriticValueModel;
+import model.block.BoxPolicyModelBlock;
+import model.block.CriticValueModelBlock;
 import utils.ActionSampler;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -71,8 +71,8 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        policyModel = BoxPolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
-        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
+        policyModel = BoxPolicyModelBlock.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
+        valueModel = CriticValueModelBlock.newModel(manager, env.getStateSpaceDim());
         policyPredictor = policyModel.newPredictor(new NoopTranslator());
         valuePredictor = valueModel.newPredictor(new NoopTranslator());
         this.innerUpdates = innerUpdates;
