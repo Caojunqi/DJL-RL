@@ -33,11 +33,13 @@ public final class ActionSampler {
      * @return 选中的动作
      */
     public static int sampleMultinomial(NDArray distribution, Random random) {
+        // 剔除掉多余的维度
+        NDArray squeezeDistribution = distribution.squeeze();
         int value = 0;
-        long size = distribution.size();
+        long size = squeezeDistribution.size();
         float rnd = random.nextFloat();
         for (int i = 0; i < size; i++) {
-            float cut = distribution.getFloat(value);
+            float cut = squeezeDistribution.getFloat(value);
             if (rnd > cut) {
                 value++;
             } else {
