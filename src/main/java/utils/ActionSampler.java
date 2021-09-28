@@ -60,12 +60,14 @@ public final class ActionSampler {
      * @return 随机选取的动作数据
      */
     public static double[] sampleNormal(NDArray actionMean, NDArray actionStd, Random random) {
-        Validate.isTrue(actionMean.size() == actionStd.size(), "随机抽样一个连续型动作数据时，动作均值和动作方差的数据长度应该一致！！");
-        int parameterSize = (int) actionMean.size();
+        NDArray squeezeActionMean = actionMean.squeeze(0);
+        NDArray squeezeActionStd = actionStd.squeeze(0);
+        Validate.isTrue(squeezeActionMean.size() == squeezeActionStd.size(), "随机抽样一个连续型动作数据时，动作均值和动作方差的数据长度应该一致！！");
+        int parameterSize = (int) squeezeActionMean.size();
         double[] actionData = new double[parameterSize];
         for (int i = 0; i < parameterSize; i++) {
-            float mean = actionMean.getFloat(i);
-            float std = actionStd.getFloat(i);
+            float mean = squeezeActionMean.getFloat(i);
+            float std = squeezeActionStd.getFloat(i);
             actionData[i] = random.nextGaussian() * std + mean;
         }
         return actionData;
