@@ -38,8 +38,8 @@ public class Runner<A extends Action, E extends Environment<A>> {
         int sampleNum = 0;
         int episodesNum = 0;
         float totalReward = 0;
-        float minEpisodeReward = Float.MAX_VALUE;
-        float maxEpisodeReward = Float.MIN_VALUE;
+        float minEpisodeReward = Float.POSITIVE_INFINITY;
+        float maxEpisodeReward = Float.NEGATIVE_INFINITY;
         while (sampleNum < minBatchSize) {
             float[] state = env.reset().clone();
             boolean done = false;
