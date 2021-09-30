@@ -5,6 +5,8 @@ import env.common.Environment;
 import env.common.action.Action;
 import utils.datatype.Snapshot;
 
+import java.util.Arrays;
+
 /**
  * RL算法执行器
  *
@@ -24,6 +26,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
         for (int i = 0; i < maxIterNum; i++) {
             collectSamples(minBatchSize);
             agent.updateModel();
+            testModel();
             System.out.println("完成===" + i);
         }
     }
@@ -68,5 +71,32 @@ public class Runner<A extends Action, E extends Environment<A>> {
         }
 
         System.out.println("AverageEpisodeReward [" + (totalReward / episodesNum) + "] MaxEpisodeReward [" + maxEpisodeReward + "] MinEpisodeReward [" + minEpisodeReward + "]");
+    }
+
+    /**
+     * 采用贪婪策略，收集一幕样本数据，检测模型可靠性
+     */
+    private void testModel() {
+        agent.resetMemory();
+
+        float[] state = env.reset().clone();
+        boolean done = false;
+        float episodeReward = 0;
+
+        while (!done) {
+            env.render();
+            A action = agent.greedyAction(state);
+            Snapshot snapshot = env.step(action);
+            agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
+
+            done = snapshot.isDone();
+            state = snapshot.getNextState().clone();
+
+            episodeReward += snapshot.getReward();
+
+            System.out.println("TestModel=====State[" + Arrays.toString(state) + "]  Action[" + action.toString() + "]");
+        }
+
+        System.out.println("TestModel=====EpisodeReward [" + episodeReward + "]");
     }
 }
