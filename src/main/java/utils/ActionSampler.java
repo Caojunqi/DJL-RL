@@ -72,4 +72,21 @@ public final class ActionSampler {
         }
         return actionData;
     }
+
+    /**
+     * 从连续型动作分布中按照贪婪策略获取动作，按照正态分布来抽样
+     *
+     * @param actionMean 动作均值，其数据长度表示连续型动作的参数个数
+     * @return 贪婪策略选取的动作数据
+     */
+    public static double[] sampleNormalGreedy(NDArray actionMean) {
+        NDArray squeezeActionMean = actionMean.squeeze(0);
+        int parameterSize = (int) squeezeActionMean.size();
+        double[] actionData = new double[parameterSize];
+        for (int i = 0; i < parameterSize; i++) {
+            float mean = squeezeActionMean.getFloat(i);
+            actionData[i] = mean;
+        }
+        return actionData;
+    }
 }
