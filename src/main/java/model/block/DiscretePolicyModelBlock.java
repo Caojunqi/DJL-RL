@@ -1,6 +1,5 @@
 package model.block;
 
-import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
@@ -29,7 +28,7 @@ public class DiscretePolicyModelBlock extends BaseModelBlock {
     private Block affineLayer;
     private Block actionHead;
 
-    private DiscretePolicyModelBlock(int actionNum, int[] hiddenSize) {
+    public DiscretePolicyModelBlock(int actionNum, int[] hiddenSize) {
         super();
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
@@ -40,19 +39,6 @@ public class DiscretePolicyModelBlock extends BaseModelBlock {
         this.hiddenSize = hiddenSize;
         this.affineLayer = addChildBlock("affine_layer", affineLayers);
         this.actionHead = addChildBlock("action_head", Linear.builder().setUnits(actionNum).build());
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int actionNum) {
-        int[] hiddenSize = new int[]{128, 128};
-        return newModel(manager, stateDim, actionNum, hiddenSize);
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int actionNum, int[] hiddenSize) {
-        Model model = Model.newInstance("discrete_policy_model");
-        BaseModelBlock net = new DiscretePolicyModelBlock(actionNum, hiddenSize);
-        net.initialize(manager, DataType.FLOAT32, new Shape(stateDim));
-        model.setBlock(net);
-        return model;
     }
 
     @Override

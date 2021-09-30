@@ -1,6 +1,5 @@
 package model.block;
 
-import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
@@ -28,7 +27,7 @@ public class CriticValueModelBlock extends BaseModelBlock {
     private Block affineLayer;
     private Block valueHead;
 
-    private CriticValueModelBlock(int[] hiddenSize) {
+    public CriticValueModelBlock(int[] hiddenSize) {
         super();
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
@@ -38,19 +37,6 @@ public class CriticValueModelBlock extends BaseModelBlock {
         this.hiddenSize = hiddenSize;
         this.affineLayer = addChildBlock("affine_layer", affineLayers);
         this.valueHead = addChildBlock("value_head", Linear.builder().setUnits(1).build());
-    }
-
-    public static Model newModel(NDManager manager, int stateDim) {
-        int[] hiddenSize = new int[]{128, 128};
-        return newModel(manager, stateDim, hiddenSize);
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int[] hiddenSize) {
-        Model model = Model.newInstance("critic_value_model");
-        BaseModelBlock net = new CriticValueModelBlock(hiddenSize);
-        net.initialize(manager, DataType.FLOAT32, new Shape(stateDim));
-        model.setBlock(net);
-        return model;
     }
 
     @Override

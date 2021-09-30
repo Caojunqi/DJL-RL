@@ -1,8 +1,6 @@
 package agent;
 
-import ai.djl.Model;
 import ai.djl.engine.Engine;
-import ai.djl.inference.Predictor;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
@@ -10,21 +8,16 @@ import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.Parameter;
 import ai.djl.training.GradientCollector;
-import ai.djl.training.optimizer.Optimizer;
-import ai.djl.training.tracker.Tracker;
-import ai.djl.translate.NoopTranslator;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import env.common.action.impl.DiscreteAction;
 import env.demo.cartpole.CartPole;
-import model.block.CriticValueModelBlock;
-import model.block.DiscretePolicyModelBlock;
-import utils.ActionSampler;
+import model.model.CriticValueModel;
+import model.model.DiscretePolicyModel;
 import utils.Helper;
 import utils.MemoryBatch;
 
 import java.util.Arrays;
-import java.util.Random;
 
 /**
  * 针对CartPole的Agent
@@ -33,17 +26,6 @@ import java.util.Random;
  * @date 2021-09-15 11:09
  */
 public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
-
-    protected Random random = new Random(0);
-    protected Optimizer policyOptimizer;
-    protected Optimizer valueOptimizer;
-
-    protected NDManager manager = NDManager.newBaseManager();
-    protected Model policyModel;
-    protected Model valueModel;
-    protected Predictor<NDList, NDList> policyPredictor;
-    protected Predictor<NDList, NDList> valuePredictor;
-
     /**
      * GAE参数
      */
@@ -60,51 +42,20 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
     private float ratioUpperBound;
 
     public CartPoleAgent(CartPole env,
-                         float gamma, float gaeLambda,
-                         float learningRate, int innerUpdates, int innerBatchSize, float ratioClip) {
+                         float gamma, float gaeLambda, int innerUpdates, int innerBatchSize, float ratioClip) {
         super(env);
         this.gamma = gamma;
         this.gaeLambda = gaeLambda;
-        this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(learningRate)).build();
-        this.valueOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(learningRate)).build();
         if (manager != null) {
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        policyModel = DiscretePolicyModelBlock.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
-        valueModel = CriticValueModelBlock.newModel(manager, env.getStateSpaceDim());
-        policyPredictor = policyModel.newPredictor(new NoopTranslator());
-        valuePredictor = valueModel.newPredictor(new NoopTranslator());
+        policyModel = DiscretePolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
+        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
         this.innerUpdates = innerUpdates;
         this.innerBatchSize = innerBatchSize;
         this.ratioLowerBound = 1.0f - ratioClip;
         this.ratioUpperBound = 1.0f + ratioClip;
-    }
-
-    @Override
-    public DiscreteAction selectAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = policyPredictor.predict(new NDList(subManager.create(states))).singletonOrThrow();
-            int actionData = ActionSampler.sampleMultinomial(prob, random);
-            return new DiscreteAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    @Override
-    public DiscreteAction greedyAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = policyPredictor.predict(new NDList(subManager.create(states))).singletonOrThrow();
-            int actionData = ActionSampler.greedy(prob);
-            return new DiscreteAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     @Override
@@ -119,10 +70,10 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
             NDArray states = batch.getStates();
             NDArray actions = batch.getActions();
 
-            NDList policyOutput = policyPredictor.predict(new NDList(states));
+            NDList policyOutput = policyModel.getPredictor().predict(new NDList(states));
             NDArray distribution = Helper.gather(policyOutput.singletonOrThrow().duplicate(), actions.toIntArray());
 
-            NDList valueOutput = valuePredictor.predict(new NDList(states));
+            NDList valueOutput = valueModel.getPredictor().predict(new NDList(states));
             NDArray values = valueOutput.singletonOrThrow().duplicate();
 
             NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards(), batch.getMasks());
@@ -142,23 +93,23 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
                     NDArray advantagesSubset = getSample(subManager, advantages, index);
 
                     // update critic
-                    NDList valueOutputUpdated = valuePredictor.predict(new NDList(statesSubset));
+                    NDList valueOutputUpdated = valueModel.getPredictor().predict(new NDList(statesSubset));
                     NDArray valuesUpdated = valueOutputUpdated.singletonOrThrow();
                     NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().mean();
-                    for (Pair<String, Parameter> params : valueModel.getBlock().getParameters()) {
+                    for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
                         NDArray paramsArr = params.getValue().getArray();
                         lossCritic = lossCritic.add(paramsArr.square().sum().mul(l2Reg));
                     }
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(lossCritic);
-                        for (Pair<String, Parameter> params : valueModel.getBlock().getParameters()) {
+                        for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            valueOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            valueModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
 
                     // update policy
-                    NDList policyOutputUpdated = policyPredictor.predict(new NDList(statesSubset));
+                    NDList policyOutputUpdated = policyModel.getPredictor().predict(new NDList(statesSubset));
                     NDArray distributionUpdated = Helper.gather(policyOutputUpdated.singletonOrThrow(), actionsSubset.toIntArray());
                     NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
 
@@ -168,9 +119,9 @@ public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
 
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(lossActor);
-                        for (Pair<String, Parameter> params : policyModel.getBlock().getParameters()) {
+                        for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            policyOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
                 }

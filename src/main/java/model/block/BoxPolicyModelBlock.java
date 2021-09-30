@@ -1,6 +1,5 @@
 package model.block;
 
-import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
@@ -49,28 +48,6 @@ public class BoxPolicyModelBlock extends BaseModelBlock {
                 optInitializer(new ActionLogStdInitializer()).
                 optRequiresGrad(true).
                 optShape(new Shape(1, actionDim)).build());
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int actionDim) {
-        int[] hiddenSize = new int[]{128, 128};
-        return newModel(manager, stateDim, actionDim, hiddenSize, 0.0f);
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int actionDim, int[] hiddenSize) {
-        return newModel(manager, stateDim, actionDim, hiddenSize, 0.0f);
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int actionDim, float logStd) {
-        int[] hiddenSize = new int[]{128, 128};
-        return newModel(manager, stateDim, actionDim, hiddenSize, logStd);
-    }
-
-    public static Model newModel(NDManager manager, int stateDim, int actionDim, int[] hiddenSize, float logStd) {
-        Model model = Model.newInstance("box_policy_model");
-        BaseModelBlock net = new BoxPolicyModelBlock(actionDim, hiddenSize, logStd);
-        net.initialize(manager, DataType.FLOAT32, new Shape(stateDim));
-        model.setBlock(net);
-        return model;
     }
 
     @Override

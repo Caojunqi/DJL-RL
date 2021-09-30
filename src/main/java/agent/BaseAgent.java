@@ -1,8 +1,13 @@
 package agent;
 
+import ai.djl.ndarray.NDManager;
 import env.common.Environment;
 import env.common.action.Action;
+import model.model.BasePolicyModel;
+import model.model.BaseValueModel;
 import utils.Memory;
+
+import java.util.Random;
 
 /**
  * RL算法调度器基类
@@ -12,6 +17,10 @@ import utils.Memory;
  */
 public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
     /**
+     * 随机数生成器
+     */
+    protected Random random = new Random(0);
+    /**
      * 调度器针对的环境
      */
     private E env;
@@ -19,26 +28,22 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
      * 样本缓存
      */
     protected Memory<A> memory = new Memory<>();
+    /**
+     * NDArray管理器
+     */
+    protected NDManager manager;
+    /**
+     * 策略模型
+     */
+    protected BasePolicyModel<A> policyModel;
+    /**
+     * 价值函数近似模型
+     */
+    protected BaseValueModel valueModel;
 
     protected BaseAgent(E env) {
         this.env = env;
     }
-
-    /**
-     * 根据指定环境状态选择一个合适的动作
-     *
-     * @param state 环境当前状态
-     * @return action 接下来应采取的动作
-     */
-    public abstract A selectAction(float[] state);
-
-    /**
-     * 采用贪婪策略，为指定环境状态选择一个确定的动作
-     *
-     * @param state 环境当前状态
-     * @return 确定动作
-     */
-    public abstract A greedyAction(float[] state);
 
     /**
      * 收集动作执行样本数据
@@ -61,5 +66,13 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
      */
     public void resetMemory() {
         this.memory.reset();
+    }
+
+    public BasePolicyModel<A> getPolicyModel() {
+        return policyModel;
+    }
+
+    public BaseValueModel getValueModel() {
+        return valueModel;
     }
 }

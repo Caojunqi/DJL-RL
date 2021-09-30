@@ -1,8 +1,6 @@
 package agent;
 
-import ai.djl.Model;
 import ai.djl.engine.Engine;
-import ai.djl.inference.Predictor;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
@@ -10,21 +8,16 @@ import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.Parameter;
 import ai.djl.training.GradientCollector;
-import ai.djl.training.optimizer.Optimizer;
-import ai.djl.training.tracker.Tracker;
-import ai.djl.translate.NoopTranslator;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import env.common.action.impl.BoxAction;
 import env.demo.mountaincar.MountainCarContinuous;
-import model.block.BoxPolicyModelBlock;
-import model.block.CriticValueModelBlock;
-import utils.ActionSampler;
+import model.model.BoxPolicyModel;
+import model.model.CriticValueModel;
 import utils.Helper;
 import utils.MemoryBatch;
 
 import java.util.Arrays;
-import java.util.Random;
 
 /**
  * 针对MountainCarContinuous的Agent
@@ -33,16 +26,6 @@ import java.util.Random;
  * @date 2021-09-23 11:57
  */
 public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCarContinuous> {
-
-    protected Random random = new Random(0);
-    protected Optimizer policyOptimizer;
-    protected Optimizer valueOptimizer;
-
-    protected NDManager manager = NDManager.newBaseManager();
-    protected Model policyModel;
-    protected Model valueModel;
-    protected Predictor<NDList, NDList> policyPredictor;
-    protected Predictor<NDList, NDList> valuePredictor;
 
     /**
      * GAE参数
@@ -65,46 +48,16 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
         super(env);
         this.gamma = gamma;
         this.gaeLambda = gaeLambda;
-        this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(learningRate)).build();
-        this.valueOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(learningRate)).build();
         if (manager != null) {
             manager.close();
         }
         manager = NDManager.newBaseManager();
-        policyModel = BoxPolicyModelBlock.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
-        valueModel = CriticValueModelBlock.newModel(manager, env.getStateSpaceDim());
-        policyPredictor = policyModel.newPredictor(new NoopTranslator());
-        valuePredictor = valueModel.newPredictor(new NoopTranslator());
+        policyModel = BoxPolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
+        valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
         this.innerUpdates = innerUpdates;
         this.innerBatchSize = innerBatchSize;
         this.ratioLowerBound = 1.0f - ratioClip;
         this.ratioUpperBound = 1.0f + ratioClip;
-    }
-
-    @Override
-    public BoxAction selectAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDList distribution = policyPredictor.predict(new NDList(subManager.create(states)));
-            double[] actionData = ActionSampler.sampleNormal(distribution.get(0), distribution.get(2), random);
-            return new BoxAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    @Override
-    public BoxAction greedyAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDList distribution = policyPredictor.predict(new NDList(subManager.create(states)));
-            double[] actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
-            return new BoxAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     public NDArray normalLogDensity(NDArray actions, NDArray actionMean, NDArray actionLogStd, NDArray actionStd) {
@@ -125,11 +78,11 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
             NDArray states = batch.getStates();
             NDArray actions = batch.getActions();
 
-            NDList policyOutput = policyPredictor.predict(new NDList(states));
+            NDList policyOutput = policyModel.getPredictor().predict(new NDList(states));
             NDArray distribution = normalLogDensity(actions, policyOutput.get(0).duplicate(), policyOutput.get(1).duplicate(), policyOutput.get(2).duplicate());
             distribution = distribution.exp();
 
-            NDList valueOutput = valuePredictor.predict(new NDList(states));
+            NDList valueOutput = valueModel.getPredictor().predict(new NDList(states));
             NDArray values = valueOutput.singletonOrThrow().duplicate();
 
             NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards(), batch.getMasks());
@@ -149,23 +102,23 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
                     NDArray advantagesSubset = getSample(subManager, advantages, index);
 
                     // update critic
-                    NDList valueOutputUpdated = valuePredictor.predict(new NDList(statesSubset));
+                    NDList valueOutputUpdated = valueModel.getPredictor().predict(new NDList(statesSubset));
                     NDArray valuesUpdated = valueOutputUpdated.singletonOrThrow();
                     NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().mean();
-                    for (Pair<String, Parameter> params : valueModel.getBlock().getParameters()) {
+                    for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
                         NDArray paramsArr = params.getValue().getArray();
                         lossCritic = lossCritic.add(paramsArr.square().sum().mul(l2Reg));
                     }
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(lossCritic);
-                        for (Pair<String, Parameter> params : valueModel.getBlock().getParameters()) {
+                        for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            valueOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            valueModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
 
                     // update policy
-                    NDList policyOutputUpdated = policyPredictor.predict(new NDList(statesSubset));
+                    NDList policyOutputUpdated = policyModel.getPredictor().predict(new NDList(statesSubset));
                     NDArray distributionUpdated = normalLogDensity(actionsSubset, policyOutputUpdated.get(0), policyOutputUpdated.get(1), policyOutputUpdated.get(2));
                     distributionUpdated = distributionUpdated.exp();
                     NDArray ratios = distributionUpdated.div(distributionSubset);
@@ -176,9 +129,9 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
 
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(lossActor);
-                        for (Pair<String, Parameter> params : policyModel.getBlock().getParameters()) {
+                        for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            policyOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
                 }

@@ -5,8 +5,6 @@ import env.common.Environment;
 import env.common.action.Action;
 import utils.datatype.Snapshot;
 
-import java.util.Arrays;
-
 /**
  * RL算法执行器
  *
@@ -51,7 +49,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
 
             while (!done) {
                 env.render();
-                A action = agent.selectAction(state);
+                A action = agent.getPolicyModel().selectAction(state);
                 Snapshot snapshot = env.step(action);
                 agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
@@ -64,10 +62,12 @@ public class Runner<A extends Action, E extends Environment<A>> {
 
             totalReward += episodeReward;
             minEpisodeReward = Math.min(minEpisodeReward, episodeReward);
-            maxEpisodeReward = Math.min(maxEpisodeReward, episodeReward);
+            maxEpisodeReward = Math.max(maxEpisodeReward, episodeReward);
 
             sampleNum += step;
             episodesNum += 1;
+
+            System.out.println("episode[" + episodesNum + "], reward[" + episodeReward + "]");
         }
 
         System.out.println("AverageEpisodeReward [" + (totalReward / episodesNum) + "] MaxEpisodeReward [" + maxEpisodeReward + "] MinEpisodeReward [" + minEpisodeReward + "]");
@@ -85,13 +85,13 @@ public class Runner<A extends Action, E extends Environment<A>> {
 
         while (!done) {
             env.render();
-            A action = agent.greedyAction(state);
+            A action = agent.getPolicyModel().greedyAction(state);
             Snapshot snapshot = env.step(action);
             agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
             episodeReward += snapshot.getReward();
 
-            System.out.println("TestModel=====State[" + Arrays.toString(state) + "]  Action[" + action.toString() + "]");
+            // System.out.println("TestModel=====State[" + Arrays.toString(state) + "]  Action[" + action.toString() + "]");
 
             done = snapshot.isDone();
             state = snapshot.getNextState().clone();
