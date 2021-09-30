@@ -89,12 +89,12 @@ public class Runner<A extends Action, E extends Environment<A>> {
             Snapshot snapshot = env.step(action);
             agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
-            done = snapshot.isDone();
-            state = snapshot.getNextState().clone();
-
             episodeReward += snapshot.getReward();
 
             System.out.println("TestModel=====State[" + Arrays.toString(state) + "]  Action[" + action.toString() + "]");
+
+            done = snapshot.isDone();
+            state = snapshot.getNextState().clone();
         }
 
         System.out.println("TestModel=====EpisodeReward [" + episodeReward + "]");
