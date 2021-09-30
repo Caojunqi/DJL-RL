@@ -96,8 +96,15 @@ public class MountainCarContinuousAgent extends BaseAgent<BoxAction, MountainCar
 
     @Override
     public BoxAction greedyAction(float[] state) {
-        // todo 待完善
-        return null;
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
+        try (NDManager subManager = manager.newSubManager()) {
+            NDList distribution = policyPredictor.predict(new NDList(subManager.create(states)));
+            double[] actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
+            return new BoxAction(actionData);
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     public NDArray normalLogDensity(NDArray actions, NDArray actionMean, NDArray actionLogStd, NDArray actionStd) {
