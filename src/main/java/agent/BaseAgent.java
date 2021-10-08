@@ -1,6 +1,8 @@
 package agent;
 
 import ai.djl.ndarray.NDManager;
+import algorithm.AlgorithmType;
+import algorithm.BaseAlgorithm;
 import env.common.Environment;
 import env.common.action.Action;
 import model.model.BasePolicyModel;
@@ -33,6 +35,10 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
      */
     protected NDManager manager;
     /**
+     * 算法核心
+     */
+    protected BaseAlgorithm<A> algorithm;
+    /**
      * 策略模型
      */
     protected BasePolicyModel<A> policyModel;
@@ -41,8 +47,10 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
      */
     protected BaseValueModel valueModel;
 
-    protected BaseAgent(E env) {
+    protected BaseAgent(E env, AlgorithmType algorithmType) {
         this.env = env;
+        manager = NDManager.newBaseManager();
+        this.algorithm = algorithmType.getAlgorithm();
     }
 
     /**
@@ -59,7 +67,9 @@ public abstract class BaseAgent<A extends Action, E extends Environment<A>> {
     /**
      * 更新模型参数
      */
-    public abstract void updateModel();
+    public final void updateModel() {
+        this.algorithm.updateModel(manager, memory, policyModel, valueModel);
+    }
 
     /**
      * 重置样本缓存

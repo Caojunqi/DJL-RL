@@ -1,23 +1,10 @@
 package agent;
 
-import ai.djl.engine.Engine;
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.index.NDIndex;
-import ai.djl.ndarray.types.Shape;
-import ai.djl.nn.Parameter;
-import ai.djl.training.GradientCollector;
-import ai.djl.translate.TranslateException;
-import ai.djl.util.Pair;
+import algorithm.AlgorithmType;
 import env.common.action.impl.DiscreteAction;
 import env.demo.cartpole.CartPole;
 import model.model.CriticValueModel;
 import model.model.DiscretePolicyModel;
-import utils.Helper;
-import utils.MemoryBatch;
-
-import java.util.Arrays;
 
 /**
  * 针对CartPole的Agent
@@ -26,142 +13,15 @@ import java.util.Arrays;
  * @date 2021-09-15 11:09
  */
 public class CartPoleAgent extends BaseAgent<DiscreteAction, CartPole> {
-    /**
-     * GAE参数
-     */
-    private float gaeLambda;
-    private float gamma;
-    private float l2Reg = 0.001f;
 
-    /**
-     * PPO参数
-     */
-    private int innerUpdates;
-    private int innerBatchSize;
-    private float ratioLowerBound;
-    private float ratioUpperBound;
-
-    public CartPoleAgent(CartPole env,
-                         float gamma, float gaeLambda, int innerUpdates, int innerBatchSize, float ratioClip) {
-        super(env);
-        this.gamma = gamma;
-        this.gaeLambda = gaeLambda;
-        if (manager != null) {
-            manager.close();
-        }
-        manager = NDManager.newBaseManager();
+    public CartPoleAgent(CartPole env, AlgorithmType algorithmType) {
+        super(env, algorithmType);
         policyModel = DiscretePolicyModel.newModel(manager, env.getStateSpaceDim(), env.getActionSpaceDim());
         valueModel = CriticValueModel.newModel(manager, env.getStateSpaceDim());
-        this.innerUpdates = innerUpdates;
-        this.innerBatchSize = innerBatchSize;
-        this.ratioLowerBound = 1.0f - ratioClip;
-        this.ratioUpperBound = 1.0f + ratioClip;
     }
 
     @Override
     public void collect(float[] state, DiscreteAction action, boolean done, float[] nextState, float reward) {
         memory.addTransition(state, action, done, nextState, reward);
-    }
-
-    @Override
-    public void updateModel() {
-        try (NDManager subManager = manager.newSubManager()) {
-            MemoryBatch batch = memory.sample(subManager);
-            NDArray states = batch.getStates();
-            NDArray actions = batch.getActions();
-
-            NDList policyOutput = policyModel.getPredictor().predict(new NDList(states));
-            NDArray distribution = Helper.gather(policyOutput.singletonOrThrow().duplicate(), actions.toIntArray());
-
-            NDList valueOutput = valueModel.getPredictor().predict(new NDList(states));
-            NDArray values = valueOutput.singletonOrThrow().duplicate();
-
-            NDList estimates = estimateAdvantage(values.duplicate(), batch.getRewards(), batch.getMasks());
-            NDArray expectedReturns = estimates.get(0);
-            NDArray advantages = estimates.get(1);
-
-            int optimIterNum = (int) (states.getShape().get(0) + innerBatchSize - 1) / innerBatchSize;
-            for (int i = 0; i < innerUpdates; i++) {
-                int[] allIndex = manager.arange((int) states.getShape().get(0)).toIntArray();
-                Helper.shuffleArray(allIndex);
-                for (int j = 0; j < optimIterNum; j++) {
-                    int[] index = Arrays.copyOfRange(allIndex, j * innerBatchSize, Math.min((j + 1) * innerBatchSize, (int) states.getShape().get(0)));
-                    NDArray statesSubset = getSample(subManager, states, index);
-                    NDArray actionsSubset = getSample(subManager, actions, index);
-                    NDArray distributionSubset = getSample(subManager, distribution, index);
-                    NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
-                    NDArray advantagesSubset = getSample(subManager, advantages, index);
-
-                    // update critic
-                    NDList valueOutputUpdated = valueModel.getPredictor().predict(new NDList(statesSubset));
-                    NDArray valuesUpdated = valueOutputUpdated.singletonOrThrow();
-                    NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().mean();
-                    for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
-                        NDArray paramsArr = params.getValue().getArray();
-                        lossCritic = lossCritic.add(paramsArr.square().sum().mul(l2Reg));
-                    }
-                    try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                        collector.backward(lossCritic);
-                        for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
-                            NDArray paramsArr = params.getValue().getArray();
-                            valueModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
-                        }
-                    }
-
-                    // update policy
-                    NDList policyOutputUpdated = policyModel.getPredictor().predict(new NDList(statesSubset));
-                    NDArray distributionUpdated = Helper.gather(policyOutputUpdated.singletonOrThrow(), actionsSubset.toIntArray());
-                    NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
-
-                    NDArray surr1 = ratios.mul(advantagesSubset);
-                    NDArray surr2 = ratios.clip(ratioLowerBound, ratioUpperBound).mul(advantagesSubset);
-                    NDArray lossActor = surr1.minimum(surr2).mean().neg();
-
-                    try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                        collector.backward(lossActor);
-                        for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
-                            NDArray paramsArr = params.getValue().getArray();
-                            policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
-                        }
-                    }
-                }
-            }
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private NDList estimateAdvantage(NDArray values, NDArray rewards, NDArray masks) {
-        NDManager manager = rewards.getManager();
-        NDArray deltas = manager.create(rewards.getShape().add(1));
-        NDArray advantages = manager.create(rewards.getShape().add(1));
-
-        float prevValue = 0;
-        float prevAdvantage = 0;
-        for (long i = rewards.getShape().get(0) - 1; i >= 0; i--) {
-            NDIndex index = new NDIndex(i);
-            int mask = masks.getBoolean(i) ? 0 : 1;
-            deltas.set(index, rewards.get(i).add(gamma * prevValue * mask).sub(values.get(i)));
-            advantages.set(index, deltas.get(i).add(gamma * gaeLambda * prevAdvantage * mask));
-
-            prevValue = values.getFloat(i);
-            prevAdvantage = advantages.getFloat(i);
-        }
-
-        NDArray expected_returns = values.add(advantages);
-        NDArray advantagesMean = advantages.mean();
-        NDArray advantagesStd = advantages.sub(advantagesMean).pow(2).sum().div(advantages.size() - 1).sqrt();
-        advantages = advantages.sub(advantagesMean).div(advantagesStd);
-
-        return new NDList(expected_returns, advantages);
-    }
-
-    private NDArray getSample(NDManager subManager, NDArray array, int[] index) {
-        Shape shape = Shape.update(array.getShape(), 0, index.length);
-        NDArray sample = subManager.zeros(shape, array.getDataType());
-        for (int i = 0; i < index.length; i++) {
-            sample.set(new NDIndex(i), array.get(index[i]));
-        }
-        return sample;
     }
 }
