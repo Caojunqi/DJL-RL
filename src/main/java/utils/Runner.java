@@ -3,6 +3,7 @@ package utils;
 import agent.BaseAgent;
 import env.common.Environment;
 import env.common.action.Action;
+import resource.ConstantParameter;
 import utils.datatype.Snapshot;
 
 /**
@@ -20,9 +21,9 @@ public class Runner<A extends Action, E extends Environment<A>> {
         this.env = env;
     }
 
-    public void mainLoop(int maxIterNum, int minBatchSize) {
-        for (int i = 0; i < maxIterNum; i++) {
-            collectSamples(minBatchSize);
+    public void mainLoop() {
+        for (int i = 0; i < ConstantParameter.MAX_ITER_NUM; i++) {
+            collectSamples(ConstantParameter.MIN_BATCH_SIZE);
             agent.updateModel();
             testModel();
             System.out.println("完成===" + i);

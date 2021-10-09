@@ -17,12 +17,12 @@ public class PPOTest {
 //        MountainCarContinuous env = new MountainCarContinuous(false);
 //        env.seed(0);
 //        new Runner<>(new MountainCarContinuousAgent(env, AlgorithmType.PPO_CONTINUOUS), env)
-//                .mainLoop(500, 2048);
+//                .mainLoop();
 
         Engine.getInstance().setRandomSeed(0);
         CartPole env = new CartPole(false);
         env.seed(0);
         new Runner<>(new CartPoleAgent(env, AlgorithmType.PPO_DISCRETE), env)
-                .mainLoop(500, 2048);
+                .mainLoop();
     }
 }
