@@ -11,9 +11,11 @@ import ai.djl.util.Pair;
 import env.common.action.impl.DiscreteAction;
 import model.model.BasePolicyModel;
 import model.model.BaseValueModel;
+import model.model.CriticValueModel;
+import model.model.DiscretePolicyModel;
 import resource.ConstantParameter;
+import utils.ActionSampler;
 import utils.Helper;
-import utils.Memory;
 import utils.MemoryBatch;
 
 import java.util.Arrays;
@@ -26,11 +28,48 @@ import java.util.Arrays;
  * @date 2021-09-16 15:44
  */
 public class PPODiscrete extends BaseAlgorithm<DiscreteAction> {
+    /**
+     * 策略模型
+     */
+    protected BasePolicyModel<DiscreteAction> policyModel;
+    /**
+     * 价值函数近似模型
+     */
+    protected BaseValueModel valueModel;
 
-    public static PPODiscrete INSTANCE = new PPODiscrete();
+    public PPODiscrete(int stateDim, int actionDim) {
+        this.policyModel = DiscretePolicyModel.newModel(manager, stateDim, actionDim);
+        this.valueModel = CriticValueModel.newModel(manager, stateDim);
+    }
 
     @Override
-    public void updateModel(NDManager manager, Memory<DiscreteAction> memory, BasePolicyModel<DiscreteAction> policyModel, BaseValueModel valueModel) {
+    public DiscreteAction selectAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
+        try (NDManager subManager = manager.newSubManager()) {
+            NDArray prob = policyModel.getPredictor().predict(new NDList(subManager.create(states))).singletonOrThrow();
+            int actionData = ActionSampler.sampleMultinomial(prob, random);
+            return new DiscreteAction(actionData);
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public DiscreteAction greedyAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
+        try (NDManager subManager = manager.newSubManager()) {
+            NDArray prob = policyModel.getPredictor().predict(new NDList(subManager.create(states))).singletonOrThrow();
+            int actionData = ActionSampler.greedy(prob);
+            return new DiscreteAction(actionData);
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void updateModel() {
         try (NDManager subManager = manager.newSubManager()) {
             MemoryBatch batch = memory.sample(subManager);
             NDArray states = batch.getStates();

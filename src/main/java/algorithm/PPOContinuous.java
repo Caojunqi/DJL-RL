@@ -11,9 +11,11 @@ import ai.djl.util.Pair;
 import env.common.action.impl.BoxAction;
 import model.model.BasePolicyModel;
 import model.model.BaseValueModel;
+import model.model.BoxPolicyModel;
+import model.model.CriticValueModel;
 import resource.ConstantParameter;
+import utils.ActionSampler;
 import utils.Helper;
-import utils.Memory;
 import utils.MemoryBatch;
 
 import java.util.Arrays;
@@ -26,11 +28,48 @@ import java.util.Arrays;
  * @date 2021-10-08 21:53
  */
 public class PPOContinuous extends BaseAlgorithm<BoxAction> {
+    /**
+     * 策略模型
+     */
+    protected BasePolicyModel<BoxAction> policyModel;
+    /**
+     * 价值函数近似模型
+     */
+    protected BaseValueModel valueModel;
 
-    public static PPOContinuous INSTANCE = new PPOContinuous();
+    public PPOContinuous(int stateDim, int actionDim) {
+        this.policyModel = BoxPolicyModel.newModel(manager, stateDim, actionDim);
+        this.valueModel = CriticValueModel.newModel(manager, stateDim);
+    }
 
     @Override
-    public void updateModel(NDManager manager, Memory<BoxAction> memory, BasePolicyModel<BoxAction> policyModel, BaseValueModel valueModel) {
+    public BoxAction selectAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
+        try (NDManager subManager = manager.newSubManager()) {
+            NDList distribution = policyModel.getPredictor().predict(new NDList(subManager.create(states)));
+            double[] actionData = ActionSampler.sampleNormal(distribution.get(0), distribution.get(2), random);
+            return new BoxAction(actionData);
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public BoxAction greedyAction(float[] state) {
+        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
+        float[][] states = new float[][]{state};
+        try (NDManager subManager = manager.newSubManager()) {
+            NDList distribution = policyModel.getPredictor().predict(new NDList(subManager.create(states)));
+            double[] actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
+            return new BoxAction(actionData);
+        } catch (TranslateException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void updateModel() {
         try (NDManager subManager = manager.newSubManager()) {
             MemoryBatch batch = memory.sample(subManager);
             NDArray states = batch.getStates();

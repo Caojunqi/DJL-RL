@@ -1,6 +1,6 @@
 package utils;
 
-import agent.BaseAgent;
+import algorithm.BaseAlgorithm;
 import env.common.Environment;
 import env.common.action.Action;
 import resource.ConstantParameter;
@@ -13,18 +13,18 @@ import utils.datatype.Snapshot;
  * @date 2021-09-09 21:59
  */
 public class Runner<A extends Action, E extends Environment<A>> {
-    private final BaseAgent<A, E> agent;
     private final Environment<A> env;
+    private final BaseAlgorithm<A> algorithm;
 
-    public Runner(BaseAgent<A, E> agent, Environment<A> env) {
-        this.agent = agent;
+    public Runner(Environment<A> env, BaseAlgorithm<A> algorithm) {
         this.env = env;
+        this.algorithm = algorithm;
     }
 
     public void mainLoop() {
         for (int i = 0; i < ConstantParameter.MAX_ITER_NUM; i++) {
-            collectSamples(ConstantParameter.MIN_BATCH_SIZE);
-            agent.updateModel();
+            collectSamples();
+            algorithm.updateModel();
             testModel();
             System.out.println("完成===" + i);
         }
@@ -32,17 +32,15 @@ public class Runner<A extends Action, E extends Environment<A>> {
 
     /**
      * 收集样本数据
-     *
-     * @param minBatchSize 每次刷新参数，最少所需样本数量
      */
-    private void collectSamples(int minBatchSize) {
-        agent.resetMemory();
+    private void collectSamples() {
+        algorithm.resetMemory();
         int sampleNum = 0;
         int episodesNum = 0;
         float totalReward = 0;
         float minEpisodeReward = Float.POSITIVE_INFINITY;
         float maxEpisodeReward = Float.NEGATIVE_INFINITY;
-        while (sampleNum < minBatchSize) {
+        while (sampleNum < ConstantParameter.MIN_BATCH_SIZE) {
             float[] state = env.reset().clone();
             boolean done = false;
             int step = 0;
@@ -50,9 +48,9 @@ public class Runner<A extends Action, E extends Environment<A>> {
 
             while (!done) {
                 env.render();
-                A action = agent.getPolicyModel().selectAction(state);
+                A action = algorithm.selectAction(state);
                 Snapshot snapshot = env.step(action);
-                agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
+                algorithm.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
                 done = snapshot.isDone();
                 state = snapshot.getNextState().clone();
@@ -78,7 +76,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
      * 采用贪婪策略，收集一幕样本数据，检测模型可靠性
      */
     private void testModel() {
-        agent.resetMemory();
+        algorithm.resetMemory();
 
         float[] state = env.reset().clone();
         boolean done = false;
@@ -86,9 +84,9 @@ public class Runner<A extends Action, E extends Environment<A>> {
 
         while (!done) {
             env.render();
-            A action = agent.getPolicyModel().greedyAction(state);
+            A action = algorithm.greedyAction(state);
             Snapshot snapshot = env.step(action);
-            agent.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
+            algorithm.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
             episodeReward += snapshot.getReward();
 

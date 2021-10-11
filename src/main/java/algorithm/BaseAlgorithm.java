@@ -6,10 +6,10 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.Shape;
 import env.common.action.Action;
-import model.model.BasePolicyModel;
-import model.model.BaseValueModel;
 import resource.ConstantParameter;
 import utils.Memory;
+
+import java.util.Random;
 
 /**
  * 更新模型的算法基类
@@ -18,8 +18,47 @@ import utils.Memory;
  * @date 2021-10-08 21:04
  */
 public abstract class BaseAlgorithm<A extends Action> {
+    /**
+     * 随机数生成器
+     */
+    protected Random random = new Random(0);
+    /**
+     * NDArray管理类
+     */
+    protected NDManager manager = NDManager.newBaseManager();
+    /**
+     * 样本缓存
+     */
+    protected Memory<A> memory = new Memory<>();
 
-    public abstract void updateModel(NDManager manager, Memory<A> memory, BasePolicyModel<A> policyModel, BaseValueModel valueModel);
+    /**
+     * 根据指定环境状态选择一个合适的动作
+     *
+     * @param state 环境当前状态
+     * @return action 接下来应采取的动作
+     */
+    public abstract A selectAction(float[] state);
+
+    /**
+     * 采用贪婪策略，为指定环境状态选择一个确定的动作
+     *
+     * @param state 环境当前状态
+     * @return 确定动作
+     */
+    public abstract A greedyAction(float[] state);
+
+    public abstract void updateModel();
+
+    /**
+     * 重置样本缓存
+     */
+    public void resetMemory() {
+        this.memory.reset();
+    }
+
+    public void collect(float[] state, A action, boolean done, float[] nextState, float reward) {
+        memory.addTransition(state, action, done, nextState, reward);
+    }
 
     protected NDList estimateAdvantage(NDArray values, NDArray rewards, NDArray masks) {
         NDManager manager = rewards.getManager();

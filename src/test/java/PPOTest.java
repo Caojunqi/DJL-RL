@@ -1,7 +1,6 @@
-import agent.CartPoleAgent;
 import ai.djl.engine.Engine;
-import algorithm.AlgorithmType;
-import env.demo.cartpole.CartPole;
+import algorithm.PPOContinuous;
+import env.demo.mountaincar.MountainCarContinuous;
 import utils.Runner;
 
 /**
@@ -13,16 +12,18 @@ import utils.Runner;
 public class PPOTest {
 
     public static void main(String[] args) {
-//        Engine.getInstance().setRandomSeed(0);
-//        MountainCarContinuous env = new MountainCarContinuous(false);
-//        env.seed(0);
-//        new Runner<>(new MountainCarContinuousAgent(env, AlgorithmType.PPO_CONTINUOUS), env)
-//                .mainLoop();
-
         Engine.getInstance().setRandomSeed(0);
-        CartPole env = new CartPole(false);
+        MountainCarContinuous env = new MountainCarContinuous(false);
+        PPOContinuous algorithm = new PPOContinuous(env.getStateSpaceDim(), env.getActionSpaceDim());
         env.seed(0);
-        new Runner<>(new CartPoleAgent(env, AlgorithmType.PPO_DISCRETE), env)
+        new Runner<>(env, algorithm)
                 .mainLoop();
+
+//        Engine.getInstance().setRandomSeed(0);
+//        CartPole env = new CartPole(false);
+//        PPODiscrete algorithm = new PPODiscrete(env.getStateSpaceDim(), env.getActionSpaceDim());
+//        env.seed(0);
+//        new Runner<>(env, algorithm)
+//                .mainLoop();
     }
 }
