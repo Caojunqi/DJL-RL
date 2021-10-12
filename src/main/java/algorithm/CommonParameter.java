@@ -1,12 +1,12 @@
-package resource;
+package algorithm;
 
 /**
- * 参数常量类
+ * 算法共用参数常量类
  *
  * @author Caojunqi
  * @date 2021-09-30 15:15
  */
-public final class ConstantParameter {
+public final class CommonParameter {
     /**
      * 是否渲染环境
      */
@@ -64,14 +64,6 @@ public final class ConstantParameter {
      */
     public final static int GPU_INDEX = 0;
     /**
-     * 策略模型隐藏层参数个数
-     */
-    public final static int[] POLICY_MODEL_HIDDEN_SIZE = new int[]{128, 128};
-    /**
-     * 状态价值函数近似模型隐藏层参数个数
-     */
-    public final static int[] CRITIC_MODEL_HIDDEN_SIZE = new int[]{128, 128};
-    /**
      * 每一批收集的数据可以用来更新模型参数的次数
      */
     public final static int INNER_UPDATES = 10;
@@ -79,11 +71,4 @@ public final class ConstantParameter {
      * 每次更新模型参数时，所需的样本数
      */
     public final static int INNER_BATCH_SIZE = 64;
-
-    /**
-     * PPO算法中用来限制新旧策略变化范围的ε
-     */
-    public final static float CLIP_EPSILON = 0.2f;
-    public final static float RATIO_LOWER_BOUND = 1.0f - CLIP_EPSILON;
-    public final static float RATIO_UPPER_BOUND = 1.0f + CLIP_EPSILON;
 }

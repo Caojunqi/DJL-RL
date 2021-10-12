@@ -1,4 +1,4 @@
-package model.block;
+package algorithm.ppo.block;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
@@ -15,43 +15,41 @@ import ai.djl.training.initializer.Initializer;
 import ai.djl.training.initializer.UniformInitializer;
 import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.util.PairList;
+import algorithm.BaseModelBlock;
 
 /**
- * 用于生成离散型动作的策略模型
+ * 状态价值函数近似模型
  *
  * @author Caojunqi
- * @date 2021-09-16 15:40
+ * @date 2021-09-16 18:06
  */
-public class DiscretePolicyModelBlock extends BaseModelBlock {
-    private int actionNum;
+public class CriticValueModelBlock extends BaseModelBlock {
     private int[] hiddenSize;
     private Block affineLayer;
-    private Block actionHead;
+    private Block valueHead;
 
-    public DiscretePolicyModelBlock(int actionNum, int[] hiddenSize) {
+    public CriticValueModelBlock(int[] hiddenSize) {
         super();
         SequentialBlock affineLayers = new SequentialBlock();
         for (int hiddenNum : hiddenSize) {
             affineLayers.add(Linear.builder().setUnits(hiddenNum).build());
             affineLayers.add(Activation::tanh);
         }
-        this.actionNum = actionNum;
         this.hiddenSize = hiddenSize;
         this.affineLayer = addChildBlock("affine_layer", affineLayers);
-        this.actionHead = addChildBlock("action_head", Linear.builder().setUnits(actionNum).build());
+        this.valueHead = addChildBlock("value_head", Linear.builder().setUnits(1).build());
     }
 
     @Override
     protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
         NDList hidden = new NDList(affineLayer.forward(parameterStore, inputs, training).singletonOrThrow());
-        NDArray scores = actionHead.forward(parameterStore, hidden, training).singletonOrThrow();
-        NDArray distribution = scores.softmax(scores.getShape().dimension() - 1);
-        return new NDList(distribution);
+        NDArray value = valueHead.forward(parameterStore, hidden, training).singletonOrThrow();
+        return new NDList(value);
     }
 
     @Override
     public Shape[] getOutputShapes(Shape[] inputShapes) {
-        return new Shape[]{new Shape(actionNum)};
+        return new Shape[]{new Shape(1)};
     }
 
     @Override
@@ -59,9 +57,8 @@ public class DiscretePolicyModelBlock extends BaseModelBlock {
         this.affineLayer.setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
         this.affineLayer.initialize(manager, dataType, inputShapes[0]);
 
-        this.actionHead.setInitializer(new UniformInitializer(), Parameter.Type.WEIGHT);
-        this.actionHead.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
-        this.actionHead.initialize(manager, dataType, new Shape(hiddenSize[hiddenSize.length - 1]));
+        this.valueHead.setInitializer(new UniformInitializer(), Parameter.Type.WEIGHT);
+        this.valueHead.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
+        this.valueHead.initialize(manager, dataType, new Shape(hiddenSize[hiddenSize.length - 1]));
     }
-
 }

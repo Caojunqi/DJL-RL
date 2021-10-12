@@ -6,7 +6,6 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.Shape;
 import env.common.action.Action;
-import resource.ConstantParameter;
 import utils.Memory;
 
 import java.util.Random;
@@ -70,8 +69,8 @@ public abstract class BaseAlgorithm<A extends Action> {
         for (long i = rewards.getShape().get(0) - 1; i >= 0; i--) {
             NDIndex index = new NDIndex(i);
             int mask = masks.getBoolean(i) ? 0 : 1;
-            deltas.set(index, rewards.get(i).add(ConstantParameter.GAMMA * prevValue * mask).sub(values.get(i)));
-            advantages.set(index, deltas.get(i).add(ConstantParameter.GAMMA * ConstantParameter.GAE_LAMBDA * prevAdvantage * mask));
+            deltas.set(index, rewards.get(i).add(CommonParameter.GAMMA * prevValue * mask).sub(values.get(i)));
+            advantages.set(index, deltas.get(i).add(CommonParameter.GAMMA * CommonParameter.GAE_LAMBDA * prevAdvantage * mask));
 
             prevValue = values.getFloat(i);
             prevAdvantage = advantages.getFloat(i);

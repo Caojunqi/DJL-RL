@@ -1,4 +1,4 @@
-package model.model;
+package algorithm;
 
 import ai.djl.Model;
 import ai.djl.inference.Predictor;

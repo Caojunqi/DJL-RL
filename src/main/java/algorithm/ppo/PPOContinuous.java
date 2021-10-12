@@ -1,4 +1,4 @@
-package algorithm;
+package algorithm.ppo;
 
 import ai.djl.engine.Engine;
 import ai.djl.ndarray.NDArray;
@@ -8,12 +8,13 @@ import ai.djl.nn.Parameter;
 import ai.djl.training.GradientCollector;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
+import algorithm.BaseAlgorithm;
+import algorithm.CommonParameter;
+import algorithm.ppo.model.BasePolicyModel;
+import algorithm.ppo.model.BaseValueModel;
+import algorithm.ppo.model.BoxPolicyModel;
+import algorithm.ppo.model.CriticValueModel;
 import env.common.action.impl.BoxAction;
-import model.model.BasePolicyModel;
-import model.model.BaseValueModel;
-import model.model.BoxPolicyModel;
-import model.model.CriticValueModel;
-import resource.ConstantParameter;
 import utils.ActionSampler;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -86,12 +87,12 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
             NDArray expectedReturns = estimates.get(0);
             NDArray advantages = estimates.get(1);
 
-            int optimIterNum = (int) (states.getShape().get(0) + ConstantParameter.INNER_BATCH_SIZE - 1) / ConstantParameter.INNER_BATCH_SIZE;
-            for (int i = 0; i < ConstantParameter.INNER_UPDATES; i++) {
+            int optimIterNum = (int) (states.getShape().get(0) + CommonParameter.INNER_BATCH_SIZE - 1) / CommonParameter.INNER_BATCH_SIZE;
+            for (int i = 0; i < CommonParameter.INNER_UPDATES; i++) {
                 int[] allIndex = manager.arange((int) states.getShape().get(0)).toIntArray();
                 Helper.shuffleArray(allIndex);
                 for (int j = 0; j < optimIterNum; j++) {
-                    int[] index = Arrays.copyOfRange(allIndex, j * ConstantParameter.INNER_BATCH_SIZE, Math.min((j + 1) * ConstantParameter.INNER_BATCH_SIZE, (int) states.getShape().get(0)));
+                    int[] index = Arrays.copyOfRange(allIndex, j * CommonParameter.INNER_BATCH_SIZE, Math.min((j + 1) * CommonParameter.INNER_BATCH_SIZE, (int) states.getShape().get(0)));
                     NDArray statesSubset = getSample(subManager, states, index);
                     NDArray actionsSubset = getSample(subManager, actions, index);
                     NDArray distributionSubset = getSample(subManager, distribution, index);
@@ -104,7 +105,7 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
                     NDArray lossCritic = (expectedReturnsSubset.sub(valuesUpdated)).square().mean();
                     for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
                         NDArray paramsArr = params.getValue().getArray();
-                        lossCritic = lossCritic.add(paramsArr.square().sum().mul(ConstantParameter.L2_REG));
+                        lossCritic = lossCritic.add(paramsArr.square().sum().mul(CommonParameter.L2_REG));
                     }
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(lossCritic);
@@ -121,7 +122,7 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
                     NDArray ratios = distributionUpdated.div(distributionSubset);
 
                     NDArray surr1 = ratios.mul(advantagesSubset);
-                    NDArray surr2 = ratios.clip(ConstantParameter.RATIO_LOWER_BOUND, ConstantParameter.RATIO_UPPER_BOUND).mul(advantagesSubset);
+                    NDArray surr2 = ratios.clip(PPOParameter.RATIO_LOWER_BOUND, PPOParameter.RATIO_UPPER_BOUND).mul(advantagesSubset);
                     NDArray lossActor = surr1.minimum(surr2).mean().neg();
 
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {

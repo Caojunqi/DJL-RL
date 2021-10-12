@@ -1,4 +1,4 @@
-package model.block;
+package algorithm;
 
 import ai.djl.nn.AbstractBlock;
 

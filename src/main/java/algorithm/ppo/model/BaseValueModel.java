@@ -1,4 +1,6 @@
-package model.model;
+package algorithm.ppo.model;
+
+import algorithm.BaseModel;
 
 /**
  * 价值函数近似模型基类

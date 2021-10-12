@@ -1,5 +1,6 @@
-package model.model;
+package algorithm.ppo.model;
 
+import algorithm.BaseModel;
 import env.common.action.Action;
 
 /**

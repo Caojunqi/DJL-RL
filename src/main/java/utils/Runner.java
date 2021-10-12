@@ -1,9 +1,9 @@
 package utils;
 
 import algorithm.BaseAlgorithm;
+import algorithm.CommonParameter;
 import env.common.Environment;
 import env.common.action.Action;
-import resource.ConstantParameter;
 import utils.datatype.Snapshot;
 
 /**
@@ -22,7 +22,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
     }
 
     public void mainLoop() {
-        for (int i = 0; i < ConstantParameter.MAX_ITER_NUM; i++) {
+        for (int i = 0; i < CommonParameter.MAX_ITER_NUM; i++) {
             collectSamples();
             algorithm.updateModel();
             testModel();
@@ -40,7 +40,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
         float totalReward = 0;
         float minEpisodeReward = Float.POSITIVE_INFINITY;
         float maxEpisodeReward = Float.NEGATIVE_INFINITY;
-        while (sampleNum < ConstantParameter.MIN_BATCH_SIZE) {
+        while (sampleNum < CommonParameter.MIN_BATCH_SIZE) {
             float[] state = env.reset().clone();
             boolean done = false;
             int step = 0;

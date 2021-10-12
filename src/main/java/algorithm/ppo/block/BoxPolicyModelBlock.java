@@ -1,4 +1,4 @@
-package model.block;
+package algorithm.ppo.block;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
@@ -14,6 +14,7 @@ import ai.djl.training.ParameterStore;
 import ai.djl.training.initializer.Initializer;
 import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.util.PairList;
+import algorithm.BaseModelBlock;
 
 /**
  * 用于生成连续型动作的策略模型
