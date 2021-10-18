@@ -8,8 +8,6 @@ import ai.djl.ndarray.types.Shape;
 import env.common.action.Action;
 import utils.Memory;
 
-import java.util.Random;
-
 /**
  * 更新模型的算法基类
  *
@@ -17,10 +15,6 @@ import java.util.Random;
  * @date 2021-10-08 21:04
  */
 public abstract class BaseAlgorithm<A extends Action> {
-    /**
-     * 随机数生成器
-     */
-    protected Random random = new Random(0);
     /**
      * NDArray管理类
      */

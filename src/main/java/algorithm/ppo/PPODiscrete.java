@@ -15,7 +15,6 @@ import algorithm.ppo.model.BaseValueModel;
 import algorithm.ppo.model.CriticValueModel;
 import algorithm.ppo.model.DiscretePolicyModel;
 import env.common.action.impl.DiscreteAction;
-import utils.ActionSampler;
 import utils.Helper;
 import utils.MemoryBatch;
 
@@ -47,26 +46,16 @@ public class PPODiscrete extends BaseAlgorithm<DiscreteAction> {
     public DiscreteAction selectAction(float[] state) {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = policyModel.getPredictor().predict(new NDList(subManager.create(states))).singletonOrThrow();
-            int actionData = ActionSampler.sampleMultinomial(prob, random);
-            return new DiscreteAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
+        NDManager subManager = manager.newSubManager();
+        return policyModel.policy(new NDList(subManager.create(states)), false, false).getAction();
     }
 
     @Override
     public DiscreteAction greedyAction(float[] state) {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDArray prob = policyModel.getPredictor().predict(new NDList(subManager.create(states))).singletonOrThrow();
-            int actionData = ActionSampler.greedy(prob);
-            return new DiscreteAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
+        NDManager subManager = manager.newSubManager();
+        return policyModel.policy(new NDList(subManager.create(states)), true, false).getAction();
     }
 
     @Override

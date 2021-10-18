@@ -6,14 +6,12 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.training.optimizer.Optimizer;
 import ai.djl.training.tracker.Tracker;
-import ai.djl.translate.TranslateException;
 import algorithm.BaseAlgorithm;
 import algorithm.BaseModel;
 import algorithm.ppo.model.BasePolicyModel;
 import algorithm.sac.model.GaussianPolicyModel;
 import algorithm.sac.model.QFunctionModel;
 import env.common.action.impl.BoxAction;
-import utils.ActionSampler;
 import utils.MemoryBatch;
 
 /**
@@ -65,31 +63,20 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
         this.alphasOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).build();
     }
 
-
     @Override
     public BoxAction selectAction(float[] state) {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDList distribution = policyModel.getPredictor().predict(new NDList(subManager.create(states)));
-            double[] actionData = ActionSampler.sampleNormal(distribution.get(0), distribution.get(2), random);
-            return new BoxAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
+        NDManager subManager = manager.newSubManager();
+        return policyModel.policy(new NDList(subManager.create(states)), false, false).getAction();
     }
 
     @Override
     public BoxAction greedyAction(float[] state) {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
-        try (NDManager subManager = manager.newSubManager()) {
-            NDList distribution = policyModel.getPredictor().predict(new NDList(subManager.create(states)));
-            double[] actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
-            return new BoxAction(actionData);
-        } catch (TranslateException e) {
-            throw new IllegalStateException(e);
-        }
+        NDManager subManager = manager.newSubManager();
+        return policyModel.policy(new NDList(subManager.create(states)), true, false).getAction();
     }
 
     @Override
