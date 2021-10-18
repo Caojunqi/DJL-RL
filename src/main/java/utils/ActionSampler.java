@@ -13,6 +13,8 @@ import java.util.Random;
  */
 public final class ActionSampler {
 
+    private static final double EPS = 1e-8;
+
     public static int epsilonGreedy(NDArray distribution, Random random, float epsilon) {
         if (random.nextFloat() < epsilon) {
             return random.nextInt((int) distribution.size());
@@ -71,6 +73,23 @@ public final class ActionSampler {
             actionData[i] = random.nextGaussian() * std + mean;
         }
         return actionData;
+    }
+
+    /**
+     * 当采用正态分布策略来进行采样时，可使用该接口来计算采样结果的似然度对数，
+     * 即：计算 log(π(a|s))
+     *
+     * @param action       采样结果
+     * @param actionMean   动作平均值
+     * @param actionStd    动作标准差
+     * @param actionLogStd 动作标准差对数值
+     * @return 似然度对数值
+     */
+    public static NDArray sampleLogProb(NDArray action, NDArray actionMean, NDArray actionStd, NDArray actionLogStd) {
+        NDArray logProb = action.sub(actionMean).div(actionStd.add(EPS)).pow(2).add(actionLogStd.mul(2)).add(Math.log(2 * Math.PI));
+        logProb.mul(-0.5);
+        logProb.sum(new int[]{-1});
+        return logProb;
     }
 
     /**

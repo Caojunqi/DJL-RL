@@ -1,8 +1,5 @@
 import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
-
-import java.util.ArrayList;
 
 /**
  * 测试类
@@ -13,18 +10,12 @@ import java.util.ArrayList;
 public class MainTest {
 
     public static void main(String[] args) {
+        int actionDim = 2;
         NDManager manager = NDManager.newBaseManager();
-        NDArray actions = manager.create(new float[]{1.0692f});
-        ArrayList<NDArray> arrayList = new ArrayList<>();
-        arrayList.add(actions);
-        NDList list = new NDList(actions);
+        NDArray array = manager.create(new double[]{0, Math.PI});
+        NDArray tanh = array.tanh();
+        NDArray tan = array.tan();
         System.out.println("llll");
-    }
-
-    public static NDArray normalLogDensity(NDArray actions, NDArray actionMean, NDArray actionLogStd, NDArray actionStd) {
-        NDArray var = actionStd.pow(2);
-        NDArray logDensity = actions.sub(actionMean).pow(2).div(var.mul(2)).neg().sub(Math.log(2 * Math.PI) * 0.5).sub(actionLogStd);
-        return logDensity.sum(new int[]{1}, true);
     }
 
 }
