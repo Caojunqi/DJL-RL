@@ -2,6 +2,10 @@ package utils;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.types.Shape;
+import ai.djl.nn.Parameter;
+import ai.djl.nn.ParameterList;
+import ai.djl.util.Pair;
+import algorithm.BaseModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,6 +61,23 @@ public final class Helper {
 
         for (int i = 0; i < list.size(); i++) {
             array[i] = list.get(i);
+        }
+    }
+
+    /**
+     * 使用 soft update的办法来更新模型参数
+     *
+     * @param source 提供新的参数值来更新目标模型的参数
+     * @param target 待更新的目标模型参数值
+     * @param tau    参数更新比例
+     */
+    public static void softParamUpdateFromTo(BaseModel source, BaseModel target, double tau) {
+        ParameterList sourceParameterList = source.getModel().getBlock().getParameters();
+        ParameterList targetParameterList = target.getModel().getBlock().getParameters();
+        for (Pair<String, Parameter> params : targetParameterList) {
+            NDArray targetParam = params.getValue().getArray();
+            NDArray sourceParam = sourceParameterList.get(params.getKey()).getArray();
+            targetParam.muli(1.0 - tau).addi(sourceParam.mul(tau));
         }
     }
 }

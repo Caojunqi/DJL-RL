@@ -71,4 +71,8 @@ public final class CommonParameter {
      * 每次更新模型参数时，所需的样本数
      */
     public final static int INNER_BATCH_SIZE = 64;
+    /**
+     * 目标模型进行 Soft update 时，参数更新比例
+     */
+    public final static double SOFT_TARGET_TAU = 5e-3;
 }
