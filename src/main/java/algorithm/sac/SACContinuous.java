@@ -116,9 +116,9 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
             // Estimate from target Q-value(s)
             // Q1_target(s', a')
             NDArray nextStatesActions = nextStates.concat(nextActions, -1).toType(DataType.FLOAT32, false);
-            NDArray nextQ1 = this.targetQf1.getPredictor().predict(new NDList(nextStatesActions)).singletonOrThrow();
+            NDArray nextQ1 = this.targetQf1.getPredictor().predict(new NDList(nextStatesActions)).singletonOrThrow().duplicate();
             // Q2_target(s', a')
-            NDArray nextQ2 = this.targetQf1.getPredictor().predict(new NDList(nextStatesActions)).singletonOrThrow();
+            NDArray nextQ2 = this.targetQf2.getPredictor().predict(new NDList(nextStatesActions)).singletonOrThrow().duplicate();
             // Minimum Unintentional Double-Q
             NDArray nextQ = nextQ1.minimum(nextQ2);
             // V_target(s')
@@ -130,11 +130,11 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
 
             // Prediction Q(s,a)
             NDArray statesActions = states.concat(actions, -1).toType(DataType.FLOAT32, false);
-            NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(statesActions)).singletonOrThrow();
+            NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(statesActions)).singletonOrThrow().duplicate();
             // Critic loss: Mean Squared Bellman Error (MSBE)
             NDArray lossQf1 = predQ1.sub(qBackup).pow(2).mean().mul(0.5).squeeze(-1);
 
-            NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(statesActions)).singletonOrThrow();
+            NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(statesActions)).singletonOrThrow().duplicate();
             NDArray lossQf2 = predQ2.sub(qBackup).pow(2).mean().mul(0.5).squeeze(-1);
 
             NDArray qvaluesLoss = lossQf1.add(lossQf2);
@@ -154,13 +154,16 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
 
             // TODO: Decide if use the minimum btw q1 and q2. Using new_q1 for now
             NDArray statesNewActions = states.concat(newActions, -1).toType(DataType.FLOAT32, false);
-            NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesNewActions)).singletonOrThrow();
+            NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesNewActions)).singletonOrThrow().duplicate();
             NDArray newQ = newQ1;
 
             // Policy KL loss: - (E_a[Q(s, a) + H(.)])
             NDArray policyKlLoss = newQ.sub(alpha.mul(newLogPi)).add(policyPriorLogProb).mean();
+            // TODO: It can include regularization of mean, std
+            double policyReguLoss = 0;
+            NDArray policyLoss = policyKlLoss.add(policyReguLoss).sum();
             try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                collector.backward(policyKlLoss);
+                collector.backward(policyLoss);
                 for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
                     NDArray paramsArr = params.getValue().getArray();
                     policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());

@@ -48,18 +48,21 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
     public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnLogProb) {
         try {
             NDList distribution = predictor.predict(states);
+            NDArray mean = distribution.get(0).duplicate();
+            NDArray logStd = distribution.get(1).duplicate();
+            NDArray std = distribution.get(2).duplicate();
             double[] actionData;
             if (deterministic) {
-                actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
+                actionData = ActionSampler.sampleNormalGreedy(mean);
             } else {
-                actionData = ActionSampler.sampleNormal(distribution.get(0), distribution.get(2), random);
+                actionData = ActionSampler.sampleNormal(mean, std, random);
             }
             BoxAction action = new BoxAction(actionData);
 
             NDList info = null;
             if (returnLogProb) {
                 NDManager subManager = manager.newSubManager();
-                NDArray logProb = ActionSampler.sampleLogProb(subManager.create(actionData), distribution.get(0), distribution.get(2), distribution.get(1));
+                NDArray logProb = ActionSampler.sampleLogProb(subManager.create(actionData), mean, std, logStd);
                 info = new NDList(logProb);
             }
             return PolicyPair.of(action, info);
