@@ -45,7 +45,7 @@ public class DiscretePolicyModel extends BasePolicyModel<DiscreteAction> {
     }
 
     @Override
-    public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnLogProb) {
+    public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
         try {
             NDArray prob = predictor.predict(states).singletonOrThrow();
             int actionData;

@@ -44,14 +44,14 @@ public class BoxPolicyModel extends BasePolicyModel<BoxAction> {
     }
 
     @Override
-    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnLogProb) {
+    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
         try {
             NDList distribution = predictor.predict(states);
             double[] actionData;
             if (deterministic) {
                 actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
             } else {
-                actionData = ActionSampler.sampleNormal(distribution.get(0), distribution.get(2), random);
+                actionData = ActionSampler.normalSampleActionData(distribution.get(0), distribution.get(2), random);
             }
             BoxAction action = new BoxAction(actionData);
             return PolicyPair.of(action, null);

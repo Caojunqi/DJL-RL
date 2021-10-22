@@ -105,11 +105,11 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
 
             // Actions for batch observation
             PolicyPair<BoxAction> policyPair = this.policyModel.policy(new NDList(states), false, true);
-            NDArray newActions = subManager.create(policyPair.getAction().getActionData()).expandDims(-1);
-            NDArray newLogPi = policyPair.getInfo().singletonOrThrow();
+            NDArray newActions = policyPair.getInfo().get(0);
+            NDArray newLogPi = policyPair.getInfo().get(4);
             PolicyPair<BoxAction> nextPolicyPair = this.policyModel.policy(new NDList(nextStates), false, true);
-            NDArray nextActions = subManager.create(nextPolicyPair.getAction().getActionData()).expandDims(-1);
-            NDArray nextLogPi = nextPolicyPair.getInfo().singletonOrThrow();
+            NDArray nextActions = nextPolicyPair.getInfo().get(0).duplicate();
+            NDArray nextLogPi = nextPolicyPair.getInfo().get(4).duplicate();
 
             // =========== Policy Evaluation Step ============
 

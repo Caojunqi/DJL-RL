@@ -61,7 +61,7 @@ public final class ActionSampler {
      * @param random     随机数生成器
      * @return 随机选取的动作数据
      */
-    public static double[] sampleNormal(NDArray actionMean, NDArray actionStd, Random random) {
+    public static double[] normalSampleActionData(NDArray actionMean, NDArray actionStd, Random random) {
         NDArray squeezeActionMean = actionMean.squeeze(0);
         NDArray squeezeActionStd = actionStd.squeeze(0);
         Validate.isTrue(squeezeActionMean.size() == squeezeActionStd.size(), "随机抽样一个连续型动作数据时，动作均值和动作方差的数据长度应该一致！！");
@@ -87,8 +87,8 @@ public final class ActionSampler {
      */
     public static NDArray sampleLogProb(NDArray action, NDArray actionMean, NDArray actionStd, NDArray actionLogStd) {
         NDArray logProb = action.sub(actionMean).div(actionStd.add(EPS)).pow(2).add(actionLogStd.mul(2)).add(Math.log(2 * Math.PI));
-        logProb.mul(-0.5);
-        logProb.sum(new int[]{-1});
+        logProb.muli(-0.5);
+        logProb = logProb.sum(new int[]{-1}, true);
         return logProb;
     }
 

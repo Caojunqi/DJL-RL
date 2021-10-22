@@ -22,11 +22,11 @@ public abstract class BasePolicyModel<A extends Action> extends BaseModel {
     /**
      * 进行策略选择
      *
-     * @param states        环境状态集合
-     * @param deterministic 是否选择确定性策略，true-确定性策略，通常用于模型评估阶段；false-随机性策略，通常用于模型训练阶段。
-     * @param returnLogProb 使用策略计算出动作后，是否返回动作似然度对数，也即计算出策略π的对数 ∑ log π(a_t | s_t)
-     * @return 策略选择结果，包含策略选择的动作结果，以及其他信息，例如 “连续型动作均值”、“连续型动作方差”、“动作似然度对数”等，其他信息的个数不固定
+     * @param states           环境状态集合
+     * @param deterministic    是否选择确定性策略，true-确定性策略，通常用于模型评估阶段；false-随机性策略，通常用于模型训练阶段。
+     * @param returnPolicyInfo 是否返回策略选择过程中所使用的的其他数据信息，例如“所选动作数组”、“动作均值数组”、“动作方差数组”、“动作方差对数数组”、“所选动作似然度对数，也即计算出策略π的对数 ∑ log π(a_t | s_t)”
+     * @return 策略选择结果，包含策略选择的动作结果，以及其他信息
      */
-    public abstract PolicyPair<A> policy(NDList states, boolean deterministic, boolean returnLogProb);
+    public abstract PolicyPair<A> policy(NDList states, boolean deterministic, boolean returnPolicyInfo);
 
 }

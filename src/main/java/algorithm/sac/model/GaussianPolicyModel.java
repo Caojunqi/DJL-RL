@@ -45,29 +45,52 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
     }
 
     @Override
-    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnLogProb) {
+    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
         try {
+            NDManager subManager = manager.newSubManager();
+
             NDList distribution = predictor.predict(states);
-            NDArray mean = distribution.get(0).duplicate();
-            NDArray logStd = distribution.get(1).duplicate();
-            NDArray std = distribution.get(2).duplicate();
-            double[] actionData;
+            NDArray mean = distribution.get(0);
+            NDArray logStd = distribution.get(1);
+            NDArray std = distribution.get(2);
+            NDArray action;
             if (deterministic) {
-                actionData = ActionSampler.sampleNormalGreedy(mean);
+                action = mean;
             } else {
-                actionData = ActionSampler.sampleNormal(mean, std, random);
+                action = normalSampleActionArray(subManager, mean, std);
             }
-            BoxAction action = new BoxAction(actionData);
+
+            // Action between -1 and 1
+            NDArray actionTanh = action.tanh();
 
             NDList info = null;
-            if (returnLogProb) {
-                NDManager subManager = manager.newSubManager();
-                NDArray logProb = ActionSampler.sampleLogProb(subManager.create(actionData), mean, std, logStd);
-                info = new NDList(logProb);
+            if (returnPolicyInfo) {
+                NDArray logProb = ActionSampler.sampleLogProb(action, mean, std, logStd);
+                if (!deterministic) {
+                    // 由于Action结果被tanh函数压缩到了(-1,1)，所以logProb的计算过程也要进行相应的调整
+                    // 此处的公式参看论文"Soft Actor-Critic:Off-Policy Maximum Entropy DeepReinforcement Learning with a Stochastic Actor"的附录"C. Enforcing Action Bounds"
+                    logProb.subi(actionTanh.pow(2).neg().add(1).clip(0, 1).add(1.e-6).log());
+                    logProb = logProb.sum(new int[]{-1}, true);
+                }
+                info = new NDList(actionTanh, mean, std, logStd, logProb);
             }
-            return PolicyPair.of(action, info);
+
+            BoxAction boxAction = new BoxAction(actionTanh.toType(DataType.FLOAT64, false).toDoubleArray());
+            return PolicyPair.of(boxAction, info);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /**
+     * 从连续型动作分布中随机获取动作，按照正态分布来抽样
+     *
+     * @param actionMean 动作均值，其数据长度表示连续型动作的参数个数
+     * @param actionStd  动作方差，其数据长度也表示连续型动作的参数个数，应和actionMean长度保持一致
+     * @return 随机选取的动作数据
+     */
+    public NDArray normalSampleActionArray(NDManager manager, NDArray actionMean, NDArray actionStd) {
+        NDArray noise = manager.randomNormal(actionStd.getShape());
+        return noise.mul(actionStd).add(actionMean);
     }
 }

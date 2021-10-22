@@ -13,11 +13,8 @@ public class MainTest {
     public static void main(String[] args) {
         int actionDim = 2;
         NDManager manager = NDManager.newBaseManager();
-        NDArray dd = manager.create(new double[]{1, 0, 1, 0, 0, 1});
-        NDArray b = dd.toType(DataType.BOOLEAN, true);
-
-        NDArray bb = manager.create(new boolean[]{true, true, false, false, true});
-        NDArray d = bb.toType(DataType.BOOLEAN, false);
+        NDArray dd = manager.create(new float[]{1.2f, 0.3f, 1.3f, 0.4f, 0.9f, 1.7f});
+        double[] ddd = dd.toType(DataType.FLOAT64, true).toDoubleArray();
         System.out.println("llll");
     }
 
