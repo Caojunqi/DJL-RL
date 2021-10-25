@@ -75,9 +75,10 @@ public final class Helper {
         ParameterList sourceParameterList = source.getModel().getBlock().getParameters();
         ParameterList targetParameterList = target.getModel().getBlock().getParameters();
         for (Pair<String, Parameter> params : targetParameterList) {
-            NDArray targetParam = params.getValue().getArray();
-            NDArray sourceParam = sourceParameterList.get(params.getKey()).getArray();
-            targetParam.muli(1.0 - tau).addi(sourceParam.mul(tau));
+            NDArray targetParam = params.getValue().getArray().duplicate();
+            NDArray sourceParam = sourceParameterList.get(params.getKey()).getArray().duplicate();
+            NDArray newTargetParam = targetParam.mul(1.0 - tau).add(sourceParam.mul(tau));
+            params.getValue().getArray().set(newTargetParam.toFloatArray());
         }
     }
 }

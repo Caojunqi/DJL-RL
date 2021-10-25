@@ -122,7 +122,7 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
             // Minimum Unintentional Double-Q
             NDArray nextQ = nextQ1.minimum(nextQ2);
             // V_target(s')
-            NDArray nextV = nextQ.sub(alpha.mul(nextLogPi));
+            NDArray nextV = nextQ.sub(alpha.mul(nextLogPi)).duplicate();
 
             // Calculate Bellman Backup for Q-values
             NDArray terminations = masks.toType(DataType.FLOAT64, true);
@@ -130,11 +130,11 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
 
             // Prediction Q(s,a)
             NDArray statesActions = states.concat(actions, -1).toType(DataType.FLOAT32, false);
-            NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(statesActions)).singletonOrThrow().duplicate();
+            NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(statesActions)).singletonOrThrow();
             // Critic loss: Mean Squared Bellman Error (MSBE)
             NDArray lossQf1 = predQ1.sub(qBackup).pow(2).mean().mul(0.5).squeeze(-1);
 
-            NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(statesActions)).singletonOrThrow().duplicate();
+            NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(statesActions)).singletonOrThrow();
             NDArray lossQf2 = predQ2.sub(qBackup).pow(2).mean().mul(0.5).squeeze(-1);
 
             NDArray qvaluesLoss = lossQf1.add(lossQf2);
@@ -154,11 +154,11 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
 
             // TODO: Decide if use the minimum btw q1 and q2. Using new_q1 for now
             NDArray statesNewActions = states.concat(newActions, -1).toType(DataType.FLOAT32, false);
-            NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesNewActions)).singletonOrThrow().duplicate();
+            NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesNewActions)).singletonOrThrow();
             NDArray newQ = newQ1;
 
             // Policy KL loss: - (E_a[Q(s, a) + H(.)])
-            NDArray policyKlLoss = newQ.sub(alpha.mul(newLogPi)).add(policyPriorLogProb).mean();
+            NDArray policyKlLoss = newQ.sub(alpha.mul(newLogPi)).add(policyPriorLogProb).mean().neg();
             // TODO: It can include regularization of mean, std
             double policyReguLoss = 0;
             NDArray policyLoss = policyKlLoss.add(policyReguLoss).sum();
@@ -173,7 +173,7 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
             // =========== Entropy Adjustment Step ===========
 
             // NOTE: In formula is alphas and not log_alphas
-            NDArray alphasLoss = this.logAlpha.mul(newLogPi.squeeze(-1).add(this.tgtEntro).mean()).neg();
+            NDArray alphasLoss = this.logAlpha.mul(newLogPi.squeeze(-1).add(this.tgtEntro).mean().duplicate()).neg();
             NDArray hiuAlphasLoss = alphasLoss.sum();
             try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                 collector.backward(hiuAlphasLoss);
