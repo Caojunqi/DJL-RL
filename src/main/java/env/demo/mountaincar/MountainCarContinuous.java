@@ -54,6 +54,7 @@ public class MountainCarContinuous extends Environment<BoxAction> {
     private static final float GOAL_POSITION = 0.45f;
     private static final float GOAL_VELOCITY = 0.0f;
     private static final float POWER = 0.45f;
+    private static final double MAX_EPISODE_LENGTH = 200;
 
     private final float[] state = new float[]{0.0f, 0.0f};
     private final MountainCarVisualizer visualizer;
@@ -99,7 +100,7 @@ public class MountainCarContinuous extends Environment<BoxAction> {
 
         this.state[0] = position;
         this.state[1] = velocity;
-        return new Snapshot(state, reward, done);
+        return new Snapshot(state, reward, episodeLength++ > MAX_EPISODE_LENGTH || done);
     }
 
     @Override
