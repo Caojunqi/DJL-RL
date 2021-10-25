@@ -91,6 +91,6 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
      */
     public NDArray normalSampleActionArray(NDManager manager, NDArray actionMean, NDArray actionStd) {
         NDArray noise = manager.randomNormal(actionStd.getShape());
-        return noise.mul(actionStd).add(actionMean);
+        return noise.mul(actionStd.duplicate()).add(actionMean.duplicate());
     }
 }
