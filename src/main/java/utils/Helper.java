@@ -64,6 +64,15 @@ public final class Helper {
         }
     }
 
+    public static void copyModel(BaseModel fromModel, BaseModel toModel) {
+        ParameterList fromParameterList = fromModel.getModel().getBlock().getParameters();
+        ParameterList toParameterList = toModel.getModel().getBlock().getParameters();
+        for (Pair<String, Parameter> params : toParameterList) {
+            NDArray fromParam = fromParameterList.get(params.getKey()).getArray().duplicate();
+            params.getValue().getArray().set(fromParam.toFloatArray());
+        }
+    }
+
     /**
      * 使用 soft update的办法来更新模型参数
      *

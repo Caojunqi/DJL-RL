@@ -65,6 +65,8 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
         this.targetQf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
         this.targetQf2 = QFunctionModel.newModel(manager, stateDim, actionDim);
 
+        Helper.copyModel(qf1, targetQf1);
+        Helper.copyModel(qf2, targetQf2);
         this.entropyScale = manager.create(SACParameter.ENTROPY_SCALE);
         this.tgtEntro = manager.create(-actionDim);
         this.logAlpha = manager.zeros(new Shape(1));
