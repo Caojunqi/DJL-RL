@@ -1,6 +1,7 @@
-import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.DataType;
+import algorithm.BaseModel;
+import algorithm.sac.model.QFunctionModel;
+import utils.Helper;
 
 /**
  * 测试类
@@ -11,10 +12,10 @@ import ai.djl.ndarray.types.DataType;
 public class MainTest {
 
     public static void main(String[] args) {
-        int actionDim = 2;
         NDManager manager = NDManager.newBaseManager();
-        NDArray dd = manager.create(new float[]{1.2f, 0.3f, 1.3f, 0.4f, 0.9f, 1.7f});
-        double[] ddd = dd.toType(DataType.FLOAT64, true).toDoubleArray();
+        BaseModel qf1 = QFunctionModel.newModel(manager, 3, 2);
+        BaseModel qf2 = QFunctionModel.newModel(manager, 3, 2);
+        Helper.copyModel(qf1, qf2);
         System.out.println("llll");
     }
 

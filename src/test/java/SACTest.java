@@ -1,6 +1,6 @@
 import ai.djl.engine.Engine;
-import algorithm.sac.SACContinuous;
-import env.demo.mountaincar.MountainCarContinuous;
+import algorithm.sac.SACDiscrete;
+import env.demo.cartpole.CartPole;
 import utils.Runner;
 
 /**
@@ -12,9 +12,16 @@ import utils.Runner;
 public class SACTest {
 
     public static void main(String[] args) {
+//        Engine.getInstance().setRandomSeed(0);
+//        MountainCarContinuous env = new MountainCarContinuous(false);
+//        SACContinuous algorithm = new SACContinuous(env.getStateSpaceDim(), env.getActionSpaceDim());
+//        env.seed(0);
+//        new Runner<>(env, algorithm)
+//                .mainLoop();
+
         Engine.getInstance().setRandomSeed(0);
-        MountainCarContinuous env = new MountainCarContinuous(false);
-        SACContinuous algorithm = new SACContinuous(env.getStateSpaceDim(), env.getActionSpaceDim());
+        CartPole env = new CartPole(false);
+        SACDiscrete algorithm = new SACDiscrete(env.getStateSpaceDim(), env.getActionSpaceDim());
         env.seed(0);
         new Runner<>(env, algorithm)
                 .mainLoop();
