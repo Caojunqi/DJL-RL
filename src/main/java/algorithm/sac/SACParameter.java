@@ -10,7 +10,7 @@ public final class SACParameter {
     /**
      * 神经网络隐藏层参数个数
      */
-    public final static int[] NETS_HIDDEN_SIZES = new int[]{4};
+    public final static int[] NETS_HIDDEN_SIZES = new int[]{256, 256};
     /**
      * 策略模型优化学习率
      */
