@@ -14,10 +14,10 @@ import env.common.action.impl.BoxAction;
  */
 public class BoxActionCollector implements IActionCollector {
 
-    private double[][] actionData;
+    private float[][] actionData;
 
     public BoxActionCollector(int batchSize) {
-        this.actionData = new double[batchSize][];
+        this.actionData = new float[batchSize][];
     }
 
     @Override

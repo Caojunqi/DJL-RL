@@ -1,8 +1,10 @@
 package algorithm.ppo.model;
 
 import ai.djl.Model;
+import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.training.optimizer.Optimizer;
@@ -14,8 +16,10 @@ import algorithm.CommonParameter;
 import algorithm.ppo.PPOParameter;
 import algorithm.ppo.block.BoxPolicyModelBlock;
 import env.common.action.impl.BoxAction;
-import utils.ActionSampler;
 import utils.datatype.PolicyPair;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 连续型动作策略模型
@@ -45,16 +49,26 @@ public class BoxPolicyModel extends BasePolicyModel<BoxAction> {
 
     @Override
     public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
-        try {
+        try (NDManager subManager = manager.newSubManager()) {
             NDList distribution = predictor.predict(states);
-            double[] actionData;
+            NDArray mean = distribution.get(0);
+            NDArray logStd = distribution.get(1);
+            NDArray std = distribution.get(2);
+            NDArray actionArray;
             if (deterministic) {
-                actionData = ActionSampler.sampleNormalGreedy(distribution.get(0));
+                actionArray = mean.duplicate();
             } else {
-                actionData = ActionSampler.normalSampleActionData(distribution.get(0), distribution.get(2), random);
+                NDArray noise = subManager.randomNormal(std.getShape());
+                actionArray = std.duplicate().mul(noise).add(mean.duplicate());
             }
-            BoxAction action = new BoxAction(actionData);
-            return PolicyPair.of(action, null);
+
+            int actionSize = (int) actionArray.getShape().get(0);
+            List<BoxAction> actions = new ArrayList<>();
+            for (int i = 0; i < actionSize; i++) {
+                float[] actionData = actionArray.get(new NDIndex(i + ",:")).toFloatArray();
+                actions.add(new BoxAction(actionData));
+            }
+            return PolicyPair.of(actions, null);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }

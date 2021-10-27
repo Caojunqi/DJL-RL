@@ -54,9 +54,9 @@ public class Memory<A extends Action> {
 
         float[][] states = new float[batchSize][];
         IActionCollector actionCollector = null;
-        boolean[] masks = new boolean[batchSize];
+        boolean[][] masks = new boolean[batchSize][];
         float[][] nextStates = new float[batchSize][];
-        float[] rewards = new float[batchSize];
+        float[][] rewards = new float[batchSize][];
 
         for (int i = 0; i < batchSize; i++) {
             Transition<A> transition = tmpList.get(i);
@@ -71,9 +71,9 @@ public class Memory<A extends Action> {
                 }
             }
             actionCollector.addAction(i, transition.getAction());
-            masks[i] = transition.isMasked();
+            masks[i] = new boolean[]{transition.isMasked()};
             nextStates[i] = transition.getNextState();
-            rewards[i] = transition.getReward();
+            rewards[i] = new float[]{transition.getReward()};
         }
         return new MemoryBatch(manager.create(states), actionCollector.createNDArray(manager), manager.create(masks), manager.create(nextStates), manager.create(rewards));
     }

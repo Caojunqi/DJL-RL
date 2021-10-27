@@ -55,8 +55,8 @@ public abstract class BaseAlgorithm<A extends Action> {
 
     protected NDList estimateAdvantage(NDArray values, NDArray rewards, NDArray masks) {
         NDManager manager = rewards.getManager();
-        NDArray deltas = manager.create(rewards.getShape().add(1));
-        NDArray advantages = manager.create(rewards.getShape().add(1));
+        NDArray deltas = manager.create(rewards.getShape());
+        NDArray advantages = manager.create(rewards.getShape());
 
         float prevValue = 0;
         float prevAdvantage = 0;

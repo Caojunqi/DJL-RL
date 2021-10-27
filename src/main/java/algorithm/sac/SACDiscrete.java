@@ -80,7 +80,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), false, false).getAction();
+        return policyModel.policy(new NDList(subManager.create(states)), false, false).singletonOrThrow();
     }
 
     @Override
@@ -88,7 +88,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), true, false).getAction();
+        return policyModel.policy(new NDList(subManager.create(states)), true, false).singletonOrThrow();
     }
 
     @Override

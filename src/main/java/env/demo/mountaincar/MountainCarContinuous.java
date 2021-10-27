@@ -69,7 +69,7 @@ public class MountainCarContinuous extends Environment<BoxAction> {
     @Override
     public Snapshot doStep(BoxAction action) {
         Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
-        double[] actionData = action.getActionData();
+        float[] actionData = action.getActionData();
         float position = this.state[0];
         float velocity = this.state[1];
         double force = Math.min(Math.max(actionData[0], MIN_ACTION), MAX_ACTION);

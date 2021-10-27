@@ -4,6 +4,7 @@ import ai.djl.Model;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.training.optimizer.Optimizer;
@@ -17,6 +18,9 @@ import algorithm.sac.block.GaussianPolicy;
 import env.common.action.impl.BoxAction;
 import utils.ActionSampler;
 import utils.datatype.PolicyPair;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Gaussian策略模型
@@ -46,16 +50,14 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
 
     @Override
     public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
-        try {
-            NDManager subManager = manager.newSubManager();
-
+        try (NDManager subManager = manager.newSubManager()) {
             NDList distribution = predictor.predict(states);
             NDArray mean = distribution.get(0);
             NDArray logStd = distribution.get(1);
             NDArray std = distribution.get(2);
             NDArray action;
             if (deterministic) {
-                action = mean;
+                action = mean.duplicate();
             } else {
                 action = normalSampleActionArray(subManager, mean, std);
             }
@@ -75,8 +77,14 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
                 info = new NDList(actionTanh, mean, std, logStd, logProb);
             }
 
-            BoxAction boxAction = new BoxAction(actionTanh.toType(DataType.FLOAT64, false).toDoubleArray());
-            return PolicyPair.of(boxAction, info);
+            int actionSize = (int) actionTanh.getShape().get(0);
+            List<BoxAction> actions = new ArrayList<>();
+            for (int i = 0; i < actionSize; i++) {
+                float[] actionData = actionTanh.get(new NDIndex(i + ",:")).toFloatArray();
+                actions.add(new BoxAction(actionData));
+            }
+
+            return PolicyPair.of(actions, info);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }
@@ -91,6 +99,6 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
      */
     public NDArray normalSampleActionArray(NDManager manager, NDArray actionMean, NDArray actionStd) {
         NDArray noise = manager.randomNormal(actionStd.getShape());
-        return noise.mul(actionStd.duplicate()).add(actionMean.duplicate());
+        return actionStd.duplicate().mul(noise).add(actionMean.duplicate());
     }
 }

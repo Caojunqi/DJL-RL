@@ -18,6 +18,9 @@ import env.common.action.impl.DiscreteAction;
 import utils.ActionSampler;
 import utils.datatype.PolicyPair;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 离散型动作策略模型
  *
@@ -46,16 +49,22 @@ public class DiscretePolicyModel extends BasePolicyModel<DiscreteAction> {
 
     @Override
     public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
-        try {
+        try (NDManager subManager = manager.newSubManager()) {
             NDArray prob = predictor.predict(states).singletonOrThrow();
-            int actionData;
+            NDArray actionArray;
             if (deterministic) {
-                actionData = ActionSampler.greedy(prob);
+                actionArray = prob.argMax(-1).toType(DataType.INT32, false).duplicate();
             } else {
-                actionData = ActionSampler.sampleMultinomial(prob, random);
+                actionArray = ActionSampler.sampleMultinomial(subManager, prob, random);
             }
-            DiscreteAction action = new DiscreteAction(actionData);
-            return PolicyPair.of(action, null);
+
+            int sampleSize = (int) actionArray.getShape().get(0);
+            List<DiscreteAction> actions = new ArrayList<>();
+            for (int i = 0; i < sampleSize; i++) {
+                int actionData = actionArray.getInt(i);
+                actions.add(new DiscreteAction(actionData));
+            }
+            return PolicyPair.of(actions, null);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }

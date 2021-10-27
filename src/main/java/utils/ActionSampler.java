@@ -1,6 +1,7 @@
 package utils;
 
 import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDManager;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Random;
@@ -51,6 +52,33 @@ public final class ActionSampler {
         }
 
         throw new IllegalArgumentException("Invalid multinomial distribution");
+    }
+
+    /**
+     * 从离散型动作分布中随机抽取一个动作
+     *
+     * @param distribution 动作分布，其数据长度就是可选动作的数量，数据值表示该index的动作被选中的概率
+     * @param random       随机数生成器
+     * @return 选中的动作
+     */
+    public static NDArray sampleMultinomial(NDManager manager, NDArray distribution, Random random) {
+        int sampleSize = (int) distribution.getShape().get(0);
+        int actionSize = (int) distribution.getShape().get(1);
+        int[] actionData = new int[sampleSize];
+        for (int i = 0; i < sampleSize; i++) {
+            int value = 0;
+            float rnd = random.nextFloat();
+            for (int j = 0; j < actionSize; j++) {
+                float cut = distribution.getFloat(i, value);
+                if (rnd > cut) {
+                    value++;
+                } else {
+                    actionData[i] = value;
+                }
+                rnd -= cut;
+            }
+        }
+        return manager.create(actionData);
     }
 
     /**

@@ -14,9 +14,9 @@ import java.util.Arrays;
  */
 public class BoxAction implements Action {
 
-    private double[] actionData;
+    private float[] actionData;
 
-    public BoxAction(double[] actionData) {
+    public BoxAction(float[] actionData) {
         this.actionData = actionData;
     }
 
@@ -32,7 +32,7 @@ public class BoxAction implements Action {
                 '}';
     }
 
-    public double[] getActionData() {
+    public float[] getActionData() {
         return actionData;
     }
 

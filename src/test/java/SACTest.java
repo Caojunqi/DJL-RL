@@ -18,7 +18,7 @@ public class SACTest {
 //        env.seed(0);
 //        new Runner<>(env, algorithm)
 //                .mainLoop();
-
+//
         Engine.getInstance().setRandomSeed(0);
         CartPole env = new CartPole(false);
         SACDiscrete algorithm = new SACDiscrete(env.getStateSpaceDim(), env.getActionSpaceDim());

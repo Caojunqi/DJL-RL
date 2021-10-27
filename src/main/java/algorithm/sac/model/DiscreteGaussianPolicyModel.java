@@ -18,6 +18,9 @@ import env.common.action.impl.DiscreteAction;
 import utils.ActionSampler;
 import utils.datatype.PolicyPair;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Caojunqi
  * @date 2021-10-26 11:41
@@ -44,15 +47,21 @@ public class DiscreteGaussianPolicyModel extends BasePolicyModel<DiscreteAction>
 
     @Override
     public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
-        try {
+        try (NDManager subManager = manager.newSubManager()) {
             NDArray distribution = predictor.predict(states).singletonOrThrow();
-            int actionData;
+            NDArray actionArray;
             if (deterministic) {
-                actionData = ActionSampler.greedy(distribution);
+                actionArray = distribution.argMax(-1).toType(DataType.INT32, false).duplicate();
             } else {
-                actionData = ActionSampler.sampleMultinomial(distribution, random);
+                actionArray = ActionSampler.sampleMultinomial(subManager, distribution, random);
             }
-            DiscreteAction discreteAction = new DiscreteAction(actionData);
+            int sampleSize = (int) actionArray.getShape().get(0);
+            List<DiscreteAction> actions = new ArrayList<>();
+            for (int i = 0; i < sampleSize; i++) {
+                int actionData = actionArray.getInt(i);
+                actions.add(new DiscreteAction(actionData));
+            }
+
             NDList info = null;
             if (returnPolicyInfo) {
                 // Have to deal with situation of 0.0 probabilities because we can't do log 0
@@ -62,7 +71,7 @@ public class DiscreteGaussianPolicyModel extends BasePolicyModel<DiscreteAction>
                 info = new NDList(distribution, logDistribution);
             }
 
-            return PolicyPair.of(discreteAction, info);
+            return PolicyPair.of(actions, info);
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }
