@@ -23,6 +23,8 @@ import utils.Helper;
 import utils.MemoryBatch;
 import utils.datatype.PolicyPair;
 
+import java.util.Arrays;
+
 /**
  * SAC算法  Soft Actor-Critic algorithm
  * 针对离散型动作空间
@@ -102,82 +104,96 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
             NDArray masks = batch.getMasks();
             NDArray terminations = masks.toType(DataType.FLOAT64, true);
 
-            // Alphas
-            NDArray alpha = this.entropyScale.mul(this.logAlpha.exp());
+            int optimIterNum = (int) (states.getShape().get(0) + CommonParameter.INNER_BATCH_SIZE - 1) / CommonParameter.INNER_BATCH_SIZE;
+            for (int i = 0; i < CommonParameter.INNER_UPDATES; i++) {
+                int[] allIndex = manager.arange((int) states.getShape().get(0)).toIntArray();
+                Helper.shuffleArray(allIndex);
+                for (int j = 0; j < optimIterNum; j++) {
+                    int[] index = Arrays.copyOfRange(allIndex, j * CommonParameter.INNER_BATCH_SIZE, Math.min((j + 1) * CommonParameter.INNER_BATCH_SIZE, (int) states.getShape().get(0)));
+                    NDArray statesSubset = getSample(subManager, states, index);
+                    NDArray actionsSubset = getSample(subManager, actions, index);
+                    NDArray nextStatesSubset = getSample(subManager, nextStates, index);
+                    NDArray rewardsSubset = getSample(subManager, rewards, index);
+                    NDArray terminationsSubset = getSample(subManager, terminations, index);
 
-            // Actions for batch observation
-            PolicyPair<DiscreteAction> nextPolicyPair = this.policyModel.policy(new NDList(nextStates), false, true);
-            NDArray nextDistribution = nextPolicyPair.getInfo().get(0).duplicate();
-            NDArray nextLogDistribution = nextPolicyPair.getInfo().get(1).duplicate();
 
-            // =========== Policy Evaluation Step ============
+                    // Alphas
+                    NDArray alpha = this.entropyScale.mul(this.logAlpha.exp());
 
-            NDArray nextTargetQ1 = this.targetQf1.getPredictor().predict(new NDList(nextStates)).singletonOrThrow().duplicate();
-            NDArray nextTargetQ2 = this.targetQf2.getPredictor().predict(new NDList(nextStates)).singletonOrThrow().duplicate();
-            NDArray nextTargetMinQf = nextDistribution.mul(nextTargetQ1.minimum(nextTargetQ2).sub(alpha.mul(nextLogDistribution))).duplicate();
-            nextTargetMinQf = nextTargetMinQf.sum(new int[]{-1}, true);
-            NDArray nextQValue = rewards.add(terminations.neg().add(1).mul(CommonParameter.GAMMA).mul(nextTargetMinQf));
+                    // Actions for batch observation
+                    PolicyPair<DiscreteAction> nextPolicyPair = this.policyModel.policy(new NDList(nextStatesSubset), false, true);
+                    NDArray nextDistribution = nextPolicyPair.getInfo().get(0).duplicate();
+                    NDArray nextLogDistribution = nextPolicyPair.getInfo().get(1).duplicate();
 
-            // Prediction Q(s,a)
-            NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(states)).singletonOrThrow();
-            predQ1 = Helper.gather(predQ1, actions.toIntArray());
-            // Critic loss: Mean Squared Bellman Error (MSBE)
-            NDArray lossQf1 = predQ1.sub(nextQValue).pow(2).mean();
-            try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                collector.backward(lossQf1);
-                for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
-                    NDArray paramsArr = params.getValue().getArray();
-                    qf1.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                    // =========== Policy Evaluation Step ============
+
+                    NDArray nextTargetQ1 = this.targetQf1.getPredictor().predict(new NDList(nextStatesSubset)).singletonOrThrow().duplicate();
+                    NDArray nextTargetQ2 = this.targetQf2.getPredictor().predict(new NDList(nextStatesSubset)).singletonOrThrow().duplicate();
+                    NDArray nextTargetMinQf = nextDistribution.mul(nextTargetQ1.minimum(nextTargetQ2).sub(alpha.mul(nextLogDistribution))).duplicate();
+                    nextTargetMinQf = nextTargetMinQf.sum(new int[]{-1}, true);
+                    NDArray nextQValue = rewardsSubset.add(terminationsSubset.neg().add(1).mul(CommonParameter.GAMMA).mul(nextTargetMinQf));
+
+                    // Prediction Q(s,a)
+                    NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(statesSubset)).singletonOrThrow();
+                    predQ1 = Helper.gather(predQ1, actionsSubset.toIntArray());
+                    // Critic loss: Mean Squared Bellman Error (MSBE)
+                    NDArray lossQf1 = predQ1.sub(nextQValue).pow(2).mean();
+                    try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
+                        collector.backward(lossQf1);
+                        for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                            NDArray paramsArr = params.getValue().getArray();
+                            qf1.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                        }
+                    }
+
+                    NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(statesSubset)).singletonOrThrow();
+                    predQ2 = Helper.gather(predQ2, actionsSubset.toIntArray());
+                    NDArray lossQf2 = predQ2.sub(nextQValue).pow(2).mean();
+                    try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
+                        collector.backward(lossQf2);
+                        for (Pair<String, Parameter> params : qf2.getModel().getBlock().getParameters()) {
+                            NDArray paramsArr = params.getValue().getArray();
+                            qf2.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                        }
+                    }
+
+                    // =========== Target Networks Update Step ===========
+
+                    Helper.softParamUpdateFromTo(this.qf1, this.targetQf1, CommonParameter.SOFT_TARGET_TAU);
+                    Helper.softParamUpdateFromTo(this.qf2, this.targetQf2, CommonParameter.SOFT_TARGET_TAU);
+
+                    // =========== Policy Improvement Step ============
+
+                    PolicyPair<DiscreteAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), false, true);
+                    NDArray newDistribution = newPolicyPair.getInfo().get(0);
+                    NDArray newLogDistribution = newPolicyPair.getInfo().get(1);
+
+                    NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesSubset)).singletonOrThrow();
+                    NDArray newQ2 = this.qf2.getPredictor().predict(new NDList(statesSubset)).singletonOrThrow();
+                    NDArray minNewQ = newQ1.minimum(newQ2);
+
+                    NDArray insideTerm = alpha.mul(newLogDistribution).sub(minNewQ);
+                    NDArray policyLoss = insideTerm.mul(newDistribution).sum(new int[]{1}).mean();
+                    newLogDistribution = newLogDistribution.mul(newDistribution).sum(new int[]{1});
+                    NDArray alphaLoss = this.logAlpha.mul(newLogDistribution.add(this.tgtEntro).duplicate()).mean();
+
+                    try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
+                        collector.backward(policyLoss);
+                        for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
+                            NDArray paramsArr = params.getValue().getArray();
+                            policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                        }
+                    }
+
+                    // =========== Entropy Adjustment Step ===========
+
+                    try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
+                        collector.backward(alphaLoss);
+                        alphasOptimizer.update(this.logAlpha.getUid(), this.logAlpha, this.logAlpha.getGradient().duplicate());
+                    }
+                    this.logAlpha.clip(Math.log(SACParameter.MIN_ALPHA), Math.log(SACParameter.MAX_ALPHA));
                 }
             }
-
-            NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(states)).singletonOrThrow();
-            predQ2 = Helper.gather(predQ2, actions.toIntArray());
-            NDArray lossQf2 = predQ2.sub(nextQValue).pow(2).mean();
-            try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                collector.backward(lossQf2);
-                for (Pair<String, Parameter> params : qf2.getModel().getBlock().getParameters()) {
-                    NDArray paramsArr = params.getValue().getArray();
-                    qf2.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
-                }
-            }
-
-            // =========== Target Networks Update Step ===========
-
-            Helper.softParamUpdateFromTo(this.qf1, this.targetQf1, CommonParameter.SOFT_TARGET_TAU);
-            Helper.softParamUpdateFromTo(this.qf2, this.targetQf2, CommonParameter.SOFT_TARGET_TAU);
-
-            // =========== Policy Improvement Step ============
-
-            PolicyPair<DiscreteAction> newPolicyPair = this.policyModel.policy(new NDList(states), false, true);
-            NDArray newDistribution = newPolicyPair.getInfo().get(0);
-            NDArray newLogDistribution = newPolicyPair.getInfo().get(1);
-
-            NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(states)).singletonOrThrow();
-            NDArray newQ2 = this.qf2.getPredictor().predict(new NDList(states)).singletonOrThrow();
-            NDArray minNewQ = newQ1.minimum(newQ2);
-
-            NDArray insideTerm = alpha.mul(newLogDistribution).sub(minNewQ);
-            NDArray policyLoss = insideTerm.mul(newDistribution).sum(new int[]{1}).mean();
-            newLogDistribution = newLogDistribution.mul(newDistribution).sum(new int[]{1});
-            NDArray alphaLoss = this.logAlpha.mul(newLogDistribution.add(this.tgtEntro).duplicate()).mean();
-
-            try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                collector.backward(policyLoss);
-                for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
-                    NDArray paramsArr = params.getValue().getArray();
-                    policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
-                }
-            }
-
-            // =========== Entropy Adjustment Step ===========
-
-            try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                collector.backward(alphaLoss);
-                alphasOptimizer.update(this.logAlpha.getUid(), this.logAlpha, this.logAlpha.getGradient().duplicate());
-            }
-            this.logAlpha.clip(Math.log(SACParameter.MIN_ALPHA), Math.log(SACParameter.MAX_ALPHA));
-
         } catch (TranslateException e) {
             throw new IllegalStateException(e);
         }
