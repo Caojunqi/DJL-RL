@@ -114,15 +114,15 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
 
             NDArray nextTargetQ1 = this.targetQf1.getPredictor().predict(new NDList(nextStates)).singletonOrThrow().duplicate();
             NDArray nextTargetQ2 = this.targetQf2.getPredictor().predict(new NDList(nextStates)).singletonOrThrow().duplicate();
-            NDArray nextTargetMinQf = nextDistribution.mul(nextTargetQ1.minimum(nextTargetQ2).sub(alpha.mul(nextLogDistribution)));
+            NDArray nextTargetMinQf = nextDistribution.mul(nextTargetQ1.minimum(nextTargetQ2).sub(alpha.mul(nextLogDistribution))).duplicate();
             nextTargetMinQf = nextTargetMinQf.sum(new int[]{-1}, true);
             NDArray nextQValue = rewards.add(terminations.neg().add(1).mul(CommonParameter.GAMMA).mul(nextTargetMinQf));
 
             // Prediction Q(s,a)
             NDArray predQ1 = this.qf1.getPredictor().predict(new NDList(states)).singletonOrThrow();
-            Helper.gather(predQ1, actions.toIntArray());
+            predQ1 = Helper.gather(predQ1, actions.toIntArray());
             // Critic loss: Mean Squared Bellman Error (MSBE)
-            NDArray lossQf1 = predQ1.sub(nextQValue).pow(2).mean().mul(0.5).squeeze(-1);
+            NDArray lossQf1 = predQ1.sub(nextQValue).pow(2).mean();
             try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                 collector.backward(lossQf1);
                 for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
@@ -132,8 +132,8 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
             }
 
             NDArray predQ2 = this.qf2.getPredictor().predict(new NDList(states)).singletonOrThrow();
-            Helper.gather(predQ2, actions.toIntArray());
-            NDArray lossQf2 = predQ2.sub(nextQValue).pow(2).mean().mul(0.5).squeeze(-1);
+            predQ2 = Helper.gather(predQ2, actions.toIntArray());
+            NDArray lossQf2 = predQ2.sub(nextQValue).pow(2).mean();
             try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                 collector.backward(lossQf2);
                 for (Pair<String, Parameter> params : qf2.getModel().getBlock().getParameters()) {
@@ -150,8 +150,8 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
             // =========== Policy Improvement Step ============
 
             PolicyPair<DiscreteAction> newPolicyPair = this.policyModel.policy(new NDList(states), false, true);
-            NDArray newDistribution = newPolicyPair.getInfo().get(0).duplicate();
-            NDArray newLogDistribution = newPolicyPair.getInfo().get(1).duplicate();
+            NDArray newDistribution = newPolicyPair.getInfo().get(0);
+            NDArray newLogDistribution = newPolicyPair.getInfo().get(1);
 
             NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(states)).singletonOrThrow();
             NDArray newQ2 = this.qf2.getPredictor().predict(new NDList(states)).singletonOrThrow();

@@ -106,7 +106,7 @@ public class PPODiscrete extends BaseAlgorithm<DiscreteAction> {
                     // update policy
                     NDList policyOutputUpdated = policyModel.getPredictor().predict(new NDList(statesSubset));
                     NDArray distributionUpdated = Helper.gather(policyOutputUpdated.singletonOrThrow(), actionsSubset.toIntArray());
-                    NDArray ratios = distributionUpdated.div(distributionSubset).expandDims(1);
+                    NDArray ratios = distributionUpdated.div(distributionSubset);
 
                     NDArray surr1 = ratios.mul(advantagesSubset);
                     NDArray surr2 = ratios.clip(PPOParameter.RATIO_LOWER_BOUND, PPOParameter.RATIO_UPPER_BOUND).mul(advantagesSubset);

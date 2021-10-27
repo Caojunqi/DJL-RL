@@ -30,7 +30,7 @@ public final class Helper {
             booleanMask = booleanMask.expandDims(i);
         }
 
-        return arr.get(tile(booleanMask, arr.getShape())).reshape(Shape.update(arr.getShape(), 1, 1)).squeeze();
+        return arr.get(tile(booleanMask, arr.getShape())).reshape(Shape.update(arr.getShape(), 1, 1));
     }
 
     public static NDArray tile(NDArray arr, Shape shape) {
