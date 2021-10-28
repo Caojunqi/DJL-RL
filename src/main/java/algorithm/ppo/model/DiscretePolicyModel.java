@@ -48,12 +48,16 @@ public class DiscretePolicyModel extends BasePolicyModel<DiscreteAction> {
     }
 
     @Override
-    public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
+    public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo, boolean noGrad) {
         try (NDManager subManager = manager.newSubManager()) {
             NDArray prob = predictor.predict(states).singletonOrThrow();
+            if (noGrad) {
+                prob = prob.duplicate();
+            }
+
             NDArray actionArray;
             if (deterministic) {
-                actionArray = prob.argMax(-1).toType(DataType.INT32, false).duplicate();
+                actionArray = prob.argMax(-1).toType(DataType.INT32, false);
             } else {
                 actionArray = ActionSampler.sampleMultinomial(subManager, prob, random);
             }

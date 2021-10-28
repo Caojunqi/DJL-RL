@@ -46,12 +46,16 @@ public class DiscreteGaussianPolicyModel extends BasePolicyModel<DiscreteAction>
     }
 
     @Override
-    public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
+    public PolicyPair<DiscreteAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo, boolean noGrad) {
         try (NDManager subManager = manager.newSubManager()) {
             NDArray distribution = predictor.predict(states).singletonOrThrow();
+            if (noGrad) {
+                distribution = distribution.duplicate();
+            }
+
             NDArray actionArray;
             if (deterministic) {
-                actionArray = distribution.argMax(-1).toType(DataType.INT32, false).duplicate();
+                actionArray = distribution.argMax(-1).toType(DataType.INT32, false);
             } else {
                 actionArray = ActionSampler.sampleMultinomial(subManager, distribution, random);
             }

@@ -49,15 +49,21 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
     }
 
     @Override
-    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
+    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo, boolean noGrad) {
         try (NDManager subManager = manager.newSubManager()) {
             NDList distribution = predictor.predict(states);
             NDArray mean = distribution.get(0);
             NDArray logStd = distribution.get(1);
             NDArray std = distribution.get(2);
+            if (noGrad) {
+                mean = mean.duplicate();
+                logStd = logStd.duplicate();
+                std = std.duplicate();
+            }
+
             NDArray action;
             if (deterministic) {
-                action = mean.duplicate();
+                action = mean;
             } else {
                 action = normalSampleActionArray(subManager, mean, std);
             }
@@ -99,6 +105,6 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
      */
     public NDArray normalSampleActionArray(NDManager manager, NDArray actionMean, NDArray actionStd) {
         NDArray noise = manager.randomNormal(actionStd.getShape());
-        return actionStd.duplicate().mul(noise).add(actionMean.duplicate());
+        return actionStd.mul(noise).add(actionMean);
     }
 }

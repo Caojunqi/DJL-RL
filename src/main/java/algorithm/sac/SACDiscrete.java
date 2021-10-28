@@ -82,7 +82,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), false, false).singletonOrThrow();
+        return policyModel.policy(new NDList(subManager.create(states)), false, false, true).singletonOrThrow();
     }
 
     @Override
@@ -90,7 +90,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
         // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
         float[][] states = new float[][]{state};
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), true, false).singletonOrThrow();
+        return policyModel.policy(new NDList(subManager.create(states)), true, false, true).singletonOrThrow();
     }
 
     @Override
@@ -121,7 +121,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
                     NDArray alpha = this.entropyScale.mul(this.logAlpha.exp());
 
                     // Actions for batch observation
-                    PolicyPair<DiscreteAction> nextPolicyPair = this.policyModel.policy(new NDList(nextStatesSubset), false, true);
+                    PolicyPair<DiscreteAction> nextPolicyPair = this.policyModel.policy(new NDList(nextStatesSubset), false, true, false);
                     NDArray nextDistribution = nextPolicyPair.getInfo().get(0).duplicate();
                     NDArray nextLogDistribution = nextPolicyPair.getInfo().get(1).duplicate();
 
@@ -164,7 +164,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
 
                     // =========== Policy Improvement Step ============
 
-                    PolicyPair<DiscreteAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), false, true);
+                    PolicyPair<DiscreteAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), false, true, false);
                     NDArray newDistribution = newPolicyPair.getInfo().get(0);
                     NDArray newLogDistribution = newPolicyPair.getInfo().get(1);
 

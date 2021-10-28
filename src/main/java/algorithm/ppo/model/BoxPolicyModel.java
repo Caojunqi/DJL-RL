@@ -48,18 +48,24 @@ public class BoxPolicyModel extends BasePolicyModel<BoxAction> {
     }
 
     @Override
-    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo) {
+    public PolicyPair<BoxAction> policy(NDList states, boolean deterministic, boolean returnPolicyInfo, boolean noGrad) {
         try (NDManager subManager = manager.newSubManager()) {
             NDList distribution = predictor.predict(states);
             NDArray mean = distribution.get(0);
             NDArray logStd = distribution.get(1);
             NDArray std = distribution.get(2);
+            if (noGrad) {
+                mean = mean.duplicate();
+                logStd = logStd.duplicate();
+                std = std.duplicate();
+            }
+
             NDArray actionArray;
             if (deterministic) {
-                actionArray = mean.duplicate();
+                actionArray = mean;
             } else {
                 NDArray noise = subManager.randomNormal(std.getShape());
-                actionArray = std.duplicate().mul(noise).add(mean.duplicate());
+                actionArray = std.mul(noise).add(mean);
             }
 
             int actionSize = (int) actionArray.getShape().get(0);
