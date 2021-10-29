@@ -118,7 +118,7 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
 
 
                     // Alphas
-                    NDArray alpha = this.entropyScale.mul(this.logAlpha.exp());
+                    NDArray alpha = this.entropyScale.mul(this.logAlpha.exp().duplicate());
 
                     // Actions for batch observation
                     PolicyPair<DiscreteAction> nextPolicyPair = this.policyModel.policy(new NDList(nextStatesSubset), false, true, false);

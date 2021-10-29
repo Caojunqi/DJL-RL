@@ -118,7 +118,7 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
                     NDArray terminationsSubset = getSample(subManager, terminations, index);
 
                     // Alphas
-                    NDArray alpha = this.entropyScale.mul(this.logAlpha.exp());
+                    NDArray alpha = this.entropyScale.mul(this.logAlpha.exp().duplicate());
 
                     // Actions for batch observation
                     PolicyPair<BoxAction> policyPair = this.policyModel.policy(new NDList(statesSubset), false, true, false);
