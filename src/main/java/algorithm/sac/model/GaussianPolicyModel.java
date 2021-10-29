@@ -44,7 +44,7 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
         gaussianPolicyModel.manager = manager;
         gaussianPolicyModel.model = model;
         gaussianPolicyModel.predictor = model.newPredictor(new NoopTranslator());
-        gaussianPolicyModel.optimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).build();
+        gaussianPolicyModel.optimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
         return gaussianPolicyModel;
     }
 
