@@ -63,11 +63,11 @@ public class TD3Continuous extends BaseAlgorithm<BoxAction> {
 
     public TD3Continuous(int stateDim, int actionDim) {
         this.policyModel = ActorModel.newModel(manager, stateDim, actionDim);
-        this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
+        this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(TD3Parameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
         this.qf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
-        this.qfOptimizer1 = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.QF_LR)).build();
+        this.qfOptimizer1 = Optimizer.adam().optLearningRateTracker(Tracker.fixed(TD3Parameter.QF_LR)).build();
         this.qf2 = QFunctionModel.newModel(manager, stateDim, actionDim);
-        this.qfOptimizer2 = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.QF_LR)).build();
+        this.qfOptimizer2 = Optimizer.adam().optLearningRateTracker(Tracker.fixed(TD3Parameter.QF_LR)).build();
         this.targetPolicyModel = ActorModel.newModel(manager, stateDim, actionDim);
         this.targetQf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
         this.targetQf2 = QFunctionModel.newModel(manager, stateDim, actionDim);
