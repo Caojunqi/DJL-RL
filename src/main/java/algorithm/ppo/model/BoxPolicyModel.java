@@ -7,8 +7,6 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
-import ai.djl.training.optimizer.Optimizer;
-import ai.djl.training.tracker.Tracker;
 import ai.djl.translate.NoopTranslator;
 import ai.djl.translate.TranslateException;
 import algorithm.BaseModelBlock;
@@ -43,7 +41,6 @@ public class BoxPolicyModel extends BasePolicyModel<BoxAction> {
         boxPolicyModel.manager = manager;
         boxPolicyModel.model = model;
         boxPolicyModel.predictor = model.newPredictor(new NoopTranslator());
-        boxPolicyModel.optimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
         return boxPolicyModel;
     }
 

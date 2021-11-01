@@ -6,6 +6,8 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.nn.Parameter;
 import ai.djl.training.GradientCollector;
+import ai.djl.training.optimizer.Optimizer;
+import ai.djl.training.tracker.Tracker;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import algorithm.BaseAlgorithm;
@@ -31,15 +33,19 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
     /**
      * 策略模型
      */
-    protected BasePolicyModel<BoxAction> policyModel;
+    private BasePolicyModel<BoxAction> policyModel;
+    private Optimizer policyOptimizer;
     /**
      * 价值函数近似模型
      */
-    protected BaseValueModel valueModel;
+    private BaseValueModel valueModel;
+    private Optimizer valueOptimizer;
 
     public PPOContinuous(int stateDim, int actionDim) {
         this.policyModel = BoxPolicyModel.newModel(manager, stateDim, actionDim);
+        this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
         this.valueModel = CriticValueModel.newModel(manager, stateDim);
+        this.valueOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
     }
 
     @Override
@@ -100,7 +106,7 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
                         collector.backward(lossCritic);
                         for (Pair<String, Parameter> params : valueModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            valueModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            valueOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
 
@@ -118,7 +124,7 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
                         collector.backward(lossActor);
                         for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            policyOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
                 }

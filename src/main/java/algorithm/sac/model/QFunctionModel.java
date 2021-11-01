@@ -4,8 +4,6 @@ import ai.djl.Model;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
-import ai.djl.training.optimizer.Optimizer;
-import ai.djl.training.tracker.Tracker;
 import ai.djl.translate.NoopTranslator;
 import algorithm.BaseModelBlock;
 import algorithm.ppo.model.BaseValueModel;
@@ -34,7 +32,6 @@ public class QFunctionModel extends BaseValueModel {
         qFunctionModel.manager = manager;
         qFunctionModel.model = model;
         qFunctionModel.predictor = model.newPredictor(new NoopTranslator());
-        qFunctionModel.optimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.QF_LR)).build();
         return qFunctionModel;
     }
 }

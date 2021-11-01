@@ -7,8 +7,6 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
-import ai.djl.training.optimizer.Optimizer;
-import ai.djl.training.tracker.Tracker;
 import ai.djl.translate.NoopTranslator;
 import ai.djl.translate.TranslateException;
 import algorithm.BaseModelBlock;
@@ -44,7 +42,6 @@ public class GaussianPolicyModel extends BasePolicyModel<BoxAction> {
         gaussianPolicyModel.manager = manager;
         gaussianPolicyModel.model = model;
         gaussianPolicyModel.predictor = model.newPredictor(new NoopTranslator());
-        gaussianPolicyModel.optimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
         return gaussianPolicyModel;
     }
 

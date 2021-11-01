@@ -37,14 +37,17 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
      * 策略模型
      */
     private BasePolicyModel<BoxAction> policyModel;
+    private Optimizer policyOptimizer;
     /**
      * Q函数模型_1
      */
     private BaseModel qf1;
+    private Optimizer qfOptimizer1;
     /**
      * Q函数模型_2
      */
     private BaseModel qf2;
+    private Optimizer qfOptimizer2;
     /**
      * 目标Q函数模型_1
      */
@@ -62,8 +65,11 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
 
     public SACContinuous(int stateDim, int actionDim) {
         this.policyModel = GaussianPolicyModel.newModel(manager, stateDim, actionDim);
+        this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
         this.qf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
+        this.qfOptimizer1 = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.QF_LR)).build();
         this.qf2 = QFunctionModel.newModel(manager, stateDim, actionDim);
+        this.qfOptimizer2 = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.QF_LR)).build();
         this.targetQf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
         this.targetQf2 = QFunctionModel.newModel(manager, stateDim, actionDim);
 
@@ -158,11 +164,11 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
                         collector.backward(qvaluesLoss);
                         for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            qf1.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            qfOptimizer1.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                         for (Pair<String, Parameter> params : qf2.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            qf2.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            qfOptimizer2.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
 
@@ -182,7 +188,7 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
                         collector.backward(policyLoss);
                         for (Pair<String, Parameter> params : policyModel.getModel().getBlock().getParameters()) {
                             NDArray paramsArr = params.getValue().getArray();
-                            policyModel.getOptimizer().update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
+                            policyOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
                     }
 
