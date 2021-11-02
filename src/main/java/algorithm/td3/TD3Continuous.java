@@ -104,8 +104,6 @@ public class TD3Continuous extends BaseAlgorithm<BoxAction> {
             NDArray masks = batch.getMasks();
             NDArray terminations = masks.toType(DataType.FLOAT64, true);
 
-            float policyPriorLogProb = 0.0f; // Uniform prior // TODO: Normal prior
-
             int optimIterNum = (int) (states.getShape().get(0) + CommonParameter.INNER_BATCH_SIZE - 1) / CommonParameter.INNER_BATCH_SIZE;
             for (int i = 0; i < CommonParameter.INNER_UPDATES; i++) {
                 int[] allIndex = manager.arange((int) states.getShape().get(0)).toIntArray();
@@ -156,7 +154,7 @@ public class TD3Continuous extends BaseAlgorithm<BoxAction> {
 
                     // TODO 在更新policy参数前，有一步定期更新学习率的操作
 
-                    PolicyPair<BoxAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), false, true, false);
+                    PolicyPair<BoxAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), true, true, false);
                     NDArray newActions = newPolicyPair.getInfo().get(0);
                     NDArray statesNewActions = statesSubset.concat(newActions, -1).toType(DataType.FLOAT32, false);
                     NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesNewActions)).singletonOrThrow();
