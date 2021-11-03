@@ -169,6 +169,12 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
                     Helper.softParamUpdateFromTo(this.qf2, this.targetQf2, CommonParameter.SOFT_TARGET_TAU);
 
                     // =========== Policy Improvement Step ============
+                    for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(false);
+                    }
+                    for (Pair<String, Parameter> params : qf2.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(false);
+                    }
 
                     PolicyPair<DiscreteAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), false, true, false);
                     NDArray newDistribution = newPolicyPair.getInfo().get(0);
@@ -189,6 +195,12 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
                             NDArray paramsArr = params.getValue().getArray();
                             policyOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
+                    }
+                    for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(true);
+                    }
+                    for (Pair<String, Parameter> params : qf2.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(true);
                     }
 
                     // =========== Entropy Adjustment Step ===========
