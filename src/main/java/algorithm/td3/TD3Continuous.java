@@ -154,6 +154,10 @@ public class TD3Continuous extends BaseAlgorithm<BoxAction> {
 
                     // TODO 在更新policy参数前，有一步定期更新学习率的操作
 
+                    for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(false);
+                    }
+
                     PolicyPair<BoxAction> newPolicyPair = this.policyModel.policy(new NDList(statesSubset), true, true, false);
                     NDArray newActions = newPolicyPair.getInfo().get(0);
                     NDArray statesNewActions = statesSubset.concat(newActions, -1).toType(DataType.FLOAT32, false);
@@ -167,6 +171,10 @@ public class TD3Continuous extends BaseAlgorithm<BoxAction> {
                         }
                     }
                     Helper.softParamUpdateFromTo(this.policyModel, this.targetPolicyModel, CommonParameter.SOFT_TARGET_TAU);
+
+                    for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(true);
+                    }
                 }
             }
         } catch (TranslateException e) {

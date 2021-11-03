@@ -175,6 +175,9 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
                     // =========== Policy Improvement Step ============
 
                     // TODO: Decide if use the minimum btw q1 and q2. Using new_q1 for now
+                    for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(false);
+                    }
                     NDArray statesNewActions = statesSubset.concat(newActions, -1).toType(DataType.FLOAT32, false);
                     NDArray newQ1 = this.qf1.getPredictor().predict(new NDList(statesNewActions)).singletonOrThrow();
                     NDArray newQ = newQ1;
@@ -190,6 +193,10 @@ public class SACContinuous extends BaseAlgorithm<BoxAction> {
                             NDArray paramsArr = params.getValue().getArray();
                             policyOptimizer.update(params.getKey(), paramsArr, paramsArr.getGradient().duplicate());
                         }
+                    }
+
+                    for (Pair<String, Parameter> params : qf1.getModel().getBlock().getParameters()) {
+                        params.getValue().getArray().setRequiresGradient(true);
                     }
 
                     // =========== Entropy Adjustment Step ===========
