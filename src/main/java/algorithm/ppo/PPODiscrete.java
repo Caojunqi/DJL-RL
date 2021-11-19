@@ -44,10 +44,8 @@ public class PPODiscrete extends BaseAlgorithm<DiscreteAction> {
     public PPODiscrete(int stateDim, int actionDim) {
         this.policyModel = DiscretePolicyModel.newModel(manager, stateDim, actionDim);
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
-        ;
         this.valueModel = CriticValueModel.newModel(manager, stateDim);
         this.valueOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
-        ;
     }
 
     @Override
