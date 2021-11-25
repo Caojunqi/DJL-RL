@@ -2,7 +2,7 @@ package algorithm.ppo.model;
 
 import ai.djl.ndarray.NDList;
 import algorithm.BaseModel;
-import env.common.action.Action;
+import env.action.core.IAction;
 import utils.datatype.PolicyPair;
 
 import java.util.Random;
@@ -13,7 +13,7 @@ import java.util.Random;
  * @author Caojunqi
  * @date 2021-09-23 22:00
  */
-public abstract class BasePolicyModel<A extends Action> extends BaseModel {
+public abstract class BasePolicyModel<A extends IAction> extends BaseModel {
     /**
      * 随机数生成器
      */

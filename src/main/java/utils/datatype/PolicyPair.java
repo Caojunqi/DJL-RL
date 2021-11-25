@@ -2,7 +2,7 @@ package utils.datatype;
 
 import ai.djl.ndarray.NDList;
 import algorithm.BaseAlgorithm;
-import env.common.action.Action;
+import env.action.core.IAction;
 
 import java.util.List;
 import java.util.Objects;
@@ -13,7 +13,7 @@ import java.util.Objects;
  * @author Caojunqi
  * @date 2021-10-18 12:26
  */
-public class PolicyPair<A extends Action> {
+public class PolicyPair<A extends IAction> {
 
     private final List<A> actions;
     private final NDList info;
@@ -23,7 +23,7 @@ public class PolicyPair<A extends Action> {
         this.info = info;
     }
 
-    public static <A extends Action> PolicyPair<A> of(List<A> action, NDList info) {
+    public static <A extends IAction> PolicyPair<A> of(List<A> action, NDList info) {
         return new PolicyPair<>(action, info);
     }
 

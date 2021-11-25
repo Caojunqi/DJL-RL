@@ -1,6 +1,7 @@
-package env.common.spaces.action;
+package env.action.space.impl;
 
-import env.common.action.impl.BoxAction;
+import env.action.core.impl.BoxAction;
+import env.action.space.IActionSpace;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -9,7 +10,7 @@ import org.apache.commons.lang3.Validate;
  * @author Caojunqi
  * @date 2021-09-13 11:57
  */
-public class BoxActionSpace implements ActionSpace<BoxAction> {
+public class BoxActionSpace implements IActionSpace<BoxAction> {
 
     /**
      * 连续型空间各个维度的取值范围

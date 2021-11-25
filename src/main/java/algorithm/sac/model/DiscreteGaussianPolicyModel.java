@@ -12,7 +12,7 @@ import algorithm.BaseModelBlock;
 import algorithm.ppo.model.BasePolicyModel;
 import algorithm.sac.SACParameter;
 import algorithm.sac.block.DiscreteGaussianPolicy;
-import env.common.action.impl.DiscreteAction;
+import env.action.core.impl.DiscreteAction;
 import utils.ActionSampler;
 import utils.datatype.PolicyPair;
 

@@ -1,9 +1,10 @@
 package env.demo.mountaincar;
 
+import env.action.core.impl.BoxAction;
+import env.action.space.impl.BoxActionSpace;
 import env.common.Environment;
-import env.common.action.impl.BoxAction;
-import env.common.spaces.action.BoxActionSpace;
-import env.common.spaces.state.BoxStateSpace;
+import env.state.core.impl.BoxState;
+import env.state.space.impl.BoxStateSpace;
 import org.apache.commons.lang3.Validate;
 import utils.datatype.Snapshot;
 
@@ -41,7 +42,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:29
  */
-public class MountainCarContinuous extends Environment<BoxAction> {
+public class MountainCarContinuous extends Environment<BoxState, BoxAction> {
     private static final double[][] STATE_SPACE = new double[][]{{-1.2, 0.6}, {-0.07, 0.07}};
     private static final double[][] ACTION_SPACE = new double[][]{{-1.0, 1.0}};
     private static final float MIN_ACTION = -1.0f;
@@ -67,7 +68,7 @@ public class MountainCarContinuous extends Environment<BoxAction> {
     }
 
     @Override
-    public Snapshot doStep(BoxAction action) {
+    public Snapshot<BoxState> doStep(BoxAction action) {
         Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
         float[] actionData = action.getActionData();
         float position = this.state[0];
@@ -100,15 +101,15 @@ public class MountainCarContinuous extends Environment<BoxAction> {
 
         this.state[0] = position;
         this.state[1] = velocity;
-        return new Snapshot(state, reward, episodeLength++ > MAX_EPISODE_LENGTH || done);
+        return new Snapshot<>(new BoxState(state), reward, episodeLength++ > MAX_EPISODE_LENGTH || done);
     }
 
     @Override
-    public float[] reset() {
+    public BoxState reset() {
         episodeLength = 0;
         this.state[0] = random.nextFloat() * 0.2f - 0.6f;
         this.state[1] = 0;
-        return this.state;
+        return new BoxState(this.state);
     }
 
     @Override

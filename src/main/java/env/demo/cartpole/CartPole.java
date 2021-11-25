@@ -1,9 +1,10 @@
 package env.demo.cartpole;
 
+import env.action.core.impl.DiscreteAction;
+import env.action.space.impl.DiscreteActionSpace;
 import env.common.Environment;
-import env.common.action.impl.DiscreteAction;
-import env.common.spaces.action.DiscreteActionSpace;
-import env.common.spaces.state.BoxStateSpace;
+import env.state.core.impl.BoxState;
+import env.state.space.impl.BoxStateSpace;
 import org.apache.commons.lang3.Validate;
 import utils.datatype.Snapshot;
 
@@ -57,7 +58,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:07
  */
-public class CartPole extends Environment<DiscreteAction> {
+public class CartPole extends Environment<BoxState, DiscreteAction> {
     private static final double[][] STATE_SPACE = new double[][]{{-4.8, 4.8},
             {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}, {-0.418, 0.418},
             {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}};
@@ -84,7 +85,7 @@ public class CartPole extends Environment<DiscreteAction> {
     }
 
     @Override
-    protected Snapshot doStep(DiscreteAction action) {
+    protected Snapshot<BoxState> doStep(DiscreteAction action) {
         Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
         int actionData = action.getActionData();
         double force = actionData == 1 ? FORCE_MAG : -FORCE_MAG;
@@ -108,16 +109,16 @@ public class CartPole extends Environment<DiscreteAction> {
         boolean done = (state[0] < -X_THRESHOLD || state[0] > X_THRESHOLD || state[2] < -THETA_THRESHOLD
                 || state[2] > THETA_THRESHOLD);
 
-        return new Snapshot(state, 1.0f, count++ > MAX_EPISODE_LENGTH || done);
+        return new Snapshot<>(new BoxState(state), 1.0f, count++ > MAX_EPISODE_LENGTH || done);
     }
 
     @Override
-    public float[] reset() {
+    public BoxState reset() {
         for (int i = 0; i < 4; i++) {
             state[i] = random.nextFloat() * 0.1f - 0.05f;
         }
         count = 0;
-        return state;
+        return new BoxState(state);
     }
 
     @Override

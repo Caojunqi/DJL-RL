@@ -1,6 +1,7 @@
-package env.common.spaces.action;
+package env.action.space.impl;
 
-import env.common.action.impl.DiscreteAction;
+import env.action.core.impl.DiscreteAction;
+import env.action.space.IActionSpace;
 
 /**
  * 离散型动作空间
@@ -8,7 +9,7 @@ import env.common.action.impl.DiscreteAction;
  * @author Caojunqi
  * @date 2021-09-13 12:02
  */
-public class DiscreteActionSpace implements ActionSpace<DiscreteAction> {
+public class DiscreteActionSpace implements IActionSpace<DiscreteAction> {
 
     /**
      * 离散型元素数目

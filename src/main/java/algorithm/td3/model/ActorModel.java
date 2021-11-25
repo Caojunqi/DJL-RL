@@ -13,7 +13,7 @@ import algorithm.BaseModelBlock;
 import algorithm.ppo.model.BasePolicyModel;
 import algorithm.td3.TD3Parameter;
 import algorithm.td3.block.Actor;
-import env.common.action.impl.BoxAction;
+import env.action.core.impl.BoxAction;
 import utils.datatype.PolicyPair;
 
 import java.util.ArrayList;

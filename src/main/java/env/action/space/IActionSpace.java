@@ -1,6 +1,6 @@
-package env.common.spaces.action;
+package env.action.space;
 
-import env.common.action.Action;
+import env.action.core.IAction;
 
 /**
  * 动作空间接口
@@ -8,7 +8,7 @@ import env.common.action.Action;
  * @author Caojunqi
  * @date 2021-09-13 11:59
  */
-public interface ActionSpace<A extends Action> {
+public interface IActionSpace<A extends IAction> {
 
     /**
      * 检验当前动作空间是否可以执行指定行为

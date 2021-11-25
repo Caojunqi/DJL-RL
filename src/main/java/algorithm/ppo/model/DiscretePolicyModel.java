@@ -11,7 +11,7 @@ import ai.djl.translate.TranslateException;
 import algorithm.BaseModelBlock;
 import algorithm.ppo.PPOParameter;
 import algorithm.ppo.block.DiscretePolicyModelBlock;
-import env.common.action.impl.DiscreteAction;
+import env.action.core.impl.DiscreteAction;
 import utils.ActionSampler;
 import utils.datatype.PolicyPair;
 

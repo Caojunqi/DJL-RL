@@ -1,20 +1,21 @@
-package env.common.action;
+package env.state.collector;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDManager;
+import env.state.core.IState;
 
 /**
- * 动作数据处理器接口
+ * 状态数据处理器接口
  *
  * @author Caojunqi
- * @date 2021-09-15 11:41
+ * @date 2021-11-25 14:55
  */
-public interface IActionCollector {
+public interface IStateCollector {
 
     /**
-     * 收集指定动作数据
+     * 收集指定状态数据
      */
-    void addAction(int index, Action action);
+    void addState(int index, IState state);
 
     /**
      * 将数据收集结果构建成一个NDArray

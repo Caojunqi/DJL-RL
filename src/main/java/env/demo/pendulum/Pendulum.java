@@ -1,10 +1,11 @@
 package env.demo.pendulum;
 
 import ai.djl.util.RandomUtils;
+import env.action.core.impl.BoxAction;
+import env.action.space.impl.BoxActionSpace;
 import env.common.Environment;
-import env.common.action.impl.BoxAction;
-import env.common.spaces.action.BoxActionSpace;
-import env.common.spaces.state.BoxStateSpace;
+import env.state.core.impl.BoxState;
+import env.state.space.impl.BoxStateSpace;
 import utils.datatype.Snapshot;
 
 /**
@@ -13,7 +14,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-11-02 17:12
  */
-public class Pendulum extends Environment<BoxAction> {
+public class Pendulum extends Environment<BoxState, BoxAction> {
 
     private static final double MAX_SPEED = 8;
     private static final double MAX_TORQUE = 2.0;
@@ -34,7 +35,7 @@ public class Pendulum extends Environment<BoxAction> {
     }
 
     @Override
-    protected Snapshot doStep(BoxAction action) {
+    protected Snapshot<BoxState> doStep(BoxAction action) {
         float th = this.state[0];
         float thdot = this.state[1];
         float[] actionData = action.getActionData();
@@ -49,14 +50,14 @@ public class Pendulum extends Environment<BoxAction> {
 
         this.state[0] = (float) newTh;
         this.state[1] = (float) newThdot;
-        return new Snapshot(getState(), (float) -costs, episodeLength++ > MAX_EPISODE_LENGTH);
+        return new Snapshot<>(new BoxState(getState()), (float) -costs, episodeLength++ > MAX_EPISODE_LENGTH);
     }
 
     @Override
-    public float[] reset() {
+    public BoxState reset() {
         this.state[0] = RandomUtils.nextFloat((float) -Math.PI, (float) Math.PI);
         this.state[1] = RandomUtils.nextFloat(-1, 1);
-        return getState();
+        return new BoxState(getState());
     }
 
     @Override

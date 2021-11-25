@@ -5,7 +5,8 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.index.NDIndex;
 import ai.djl.ndarray.types.Shape;
-import env.common.action.Action;
+import env.action.core.IAction;
+import env.state.core.IState;
 import utils.Memory;
 
 /**
@@ -14,7 +15,7 @@ import utils.Memory;
  * @author Caojunqi
  * @date 2021-10-08 21:04
  */
-public abstract class BaseAlgorithm<A extends Action> {
+public abstract class BaseAlgorithm<S extends IState, A extends IAction> {
     /**
      * NDArray管理类
      */
@@ -22,7 +23,7 @@ public abstract class BaseAlgorithm<A extends Action> {
     /**
      * 样本缓存
      */
-    protected Memory<A> memory = new Memory<>();
+    protected Memory<S, A> memory = new Memory<>();
 
     /**
      * 根据指定环境状态选择一个合适的动作
@@ -30,7 +31,7 @@ public abstract class BaseAlgorithm<A extends Action> {
      * @param state 环境当前状态
      * @return action 接下来应采取的动作
      */
-    public abstract A selectAction(float[] state);
+    public abstract A selectAction(S state);
 
     /**
      * 采用贪婪策略，为指定环境状态选择一个确定的动作
@@ -38,7 +39,7 @@ public abstract class BaseAlgorithm<A extends Action> {
      * @param state 环境当前状态
      * @return 确定动作
      */
-    public abstract A greedyAction(float[] state);
+    public abstract A greedyAction(S state);
 
     public abstract void updateModel();
 
@@ -49,7 +50,7 @@ public abstract class BaseAlgorithm<A extends Action> {
         this.memory.reset();
     }
 
-    public void collect(float[] state, A action, boolean done, float[] nextState, float reward) {
+    public void collect(S state, A action, boolean done, S nextState, float reward) {
         memory.addTransition(state, action, done, nextState, reward);
     }
 

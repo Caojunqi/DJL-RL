@@ -18,7 +18,8 @@ import algorithm.CommonParameter;
 import algorithm.ppo.model.BasePolicyModel;
 import algorithm.sac.model.DiscreteGaussianPolicyModel;
 import algorithm.sac.model.DiscreteQFunctionModel;
-import env.common.action.impl.DiscreteAction;
+import env.action.core.impl.DiscreteAction;
+import env.state.core.impl.BoxState;
 import utils.Helper;
 import utils.MemoryBatch;
 import utils.datatype.PolicyPair;
@@ -32,7 +33,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-10-26 11:26
  */
-public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
+public class SACDiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
 
     /**
      * 策略模型
@@ -84,19 +85,15 @@ public class SACDiscrete extends BaseAlgorithm<DiscreteAction> {
     }
 
     @Override
-    public DiscreteAction selectAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
+    public DiscreteAction selectAction(BoxState state) {
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), false, false, true).singletonOrThrow();
+        return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public DiscreteAction greedyAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
+    public DiscreteAction greedyAction(BoxState state) {
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), true, false, true).singletonOrThrow();
+        return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }
 
     @Override

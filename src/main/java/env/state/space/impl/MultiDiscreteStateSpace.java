@@ -1,5 +1,7 @@
-package env.common.spaces.state;
+package env.state.space.impl;
 
+import env.state.core.impl.MultiDiscreteState;
+import env.state.space.IStateSpace;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -8,7 +10,7 @@ import org.apache.commons.lang3.Validate;
  * @author Caojunqi
  * @date 2021-09-13 12:21
  */
-public class MultiDiscreteStateSpace implements StateSpace {
+public class MultiDiscreteStateSpace implements IStateSpace<MultiDiscreteState> {
 
     /**
      * 离散型数据的取值，该数组长度表示数据维度，数据值表示对应维度的离散数据取值最大值（不含）。

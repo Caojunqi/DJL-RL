@@ -16,7 +16,8 @@ import algorithm.ppo.model.BasePolicyModel;
 import algorithm.ppo.model.BaseValueModel;
 import algorithm.ppo.model.BoxPolicyModel;
 import algorithm.ppo.model.CriticValueModel;
-import env.common.action.impl.BoxAction;
+import env.action.core.impl.BoxAction;
+import env.state.core.impl.BoxState;
 import utils.Helper;
 import utils.MemoryBatch;
 
@@ -29,7 +30,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-10-08 21:53
  */
-public class PPOContinuous extends BaseAlgorithm<BoxAction> {
+public class PPOContinuous extends BaseAlgorithm<BoxState, BoxAction> {
     /**
      * 策略模型
      */
@@ -49,19 +50,15 @@ public class PPOContinuous extends BaseAlgorithm<BoxAction> {
     }
 
     @Override
-    public BoxAction selectAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
+    public BoxAction selectAction(BoxState state) {
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), false, false, true).singletonOrThrow();
+        return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public BoxAction greedyAction(float[] state) {
-        // 此处将单一状态数组转为多维的，这样可以保证在predict过程中，传入1个状态和传入多个状态，输入数据的维度是一致的。
-        float[][] states = new float[][]{state};
+    public BoxAction greedyAction(BoxState state) {
         NDManager subManager = manager.newSubManager();
-        return policyModel.policy(new NDList(subManager.create(states)), true, false, true).singletonOrThrow();
+        return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }
 
     @Override

@@ -1,6 +1,7 @@
-package env.common.spaces.action;
+package env.action.space.impl;
 
-import env.common.action.impl.MultiDiscreteAction;
+import env.action.core.impl.MultiDiscreteAction;
+import env.action.space.IActionSpace;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -9,7 +10,7 @@ import org.apache.commons.lang3.Validate;
  * @author Caojunqi
  * @date 2021-09-13 12:03
  */
-public class MultiDiscreteActionSpace implements ActionSpace<MultiDiscreteAction> {
+public class MultiDiscreteActionSpace implements IActionSpace<MultiDiscreteAction> {
 
     /**
      * 离散型数据的取值，该数组长度表示数据维度，数据值表示对应维度的离散数据取值最大值（不含）。

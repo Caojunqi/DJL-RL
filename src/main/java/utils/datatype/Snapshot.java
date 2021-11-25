@@ -2,6 +2,7 @@ package utils.datatype;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import env.state.core.IState;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,11 +13,11 @@ import java.util.Map;
  * @author Caojunqi
  * @date 2021-09-09 22:03
  */
-public class Snapshot {
+public class Snapshot<S extends IState> {
     /**
      * Agent执行特定行为后，环境的状态
      */
-    private float[] nextState;
+    private S nextState;
     /**
      * Agent执行特定行为后，获得的收益
      */
@@ -26,13 +27,13 @@ public class Snapshot {
      */
     private boolean done;
 
-    public Snapshot(float[] nextState, float reward, boolean done) {
-        this.nextState = nextState.clone();
+    public Snapshot(S nextState, float reward, boolean done) {
+        this.nextState = nextState;
         this.reward = reward;
         this.done = done;
     }
 
-    public float[] getNextState() {
+    public S getNextState() {
         return nextState;
     }
 

@@ -1,9 +1,10 @@
 package env.demo.mountaincar;
 
+import env.action.core.impl.DiscreteAction;
+import env.action.space.impl.DiscreteActionSpace;
 import env.common.Environment;
-import env.common.action.impl.DiscreteAction;
-import env.common.spaces.action.DiscreteActionSpace;
-import env.common.spaces.state.BoxStateSpace;
+import env.state.core.impl.BoxState;
+import env.state.space.impl.BoxStateSpace;
 import org.apache.commons.lang3.Validate;
 import utils.datatype.Snapshot;
 
@@ -51,7 +52,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:28
  */
-public class MountainCar extends Environment<DiscreteAction> {
+public class MountainCar extends Environment<BoxState, DiscreteAction> {
     private static final double[][] STATE_SPACE = new double[][]{{-1.2, 0.6}, {-0.07, 0.07}};
     private static final float MIN_POSITION = -1.2f;
     private static final float MAX_POSITION = 0.6f;
@@ -75,7 +76,7 @@ public class MountainCar extends Environment<DiscreteAction> {
     }
 
     @Override
-    protected Snapshot doStep(DiscreteAction action) {
+    protected Snapshot<BoxState> doStep(DiscreteAction action) {
         Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
         int actionData = action.getActionData();
         state[1] += (actionData - 1) * FORCE - Math.cos(3 * state[0]) * (-GRAVITY);
@@ -89,15 +90,15 @@ public class MountainCar extends Environment<DiscreteAction> {
         boolean done = ((state[0] >= GOAL_POSITION && state[1] >= GOAL_VELOCITY)
                 || ++episodeLength >= MAX_EPISODE_LENGTH);
 
-        return new Snapshot(state, -1, done);
+        return new Snapshot<>(new BoxState(state), -1, done);
     }
 
     @Override
-    public float[] reset() {
+    public BoxState reset() {
         episodeLength = 0;
         this.state[0] = random.nextFloat() * 0.2f - 0.6f;
         this.state[1] = 0;
-        return this.state;
+        return new BoxState(this.state);
     }
 
     @Override

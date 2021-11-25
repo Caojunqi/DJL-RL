@@ -2,7 +2,8 @@ package utils.datatype;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import env.common.action.Action;
+import env.action.core.IAction;
+import env.state.core.IState;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,11 +14,11 @@ import java.util.Map;
  * @author Caojunqi
  * @date 2021-09-10 11:44
  */
-public class Transition<A extends Action> {
+public class Transition<S extends IState, A extends IAction> {
     /**
      * 执行指定动作之前的环境状态
      */
-    private float[] state;
+    private S state;
     /**
      * 所执行的动作
      */
@@ -29,21 +30,21 @@ public class Transition<A extends Action> {
     /**
      * 执行指定动作后的环境状态
      */
-    private float[] nextState;
+    private S nextState;
     /**
      * 执行指定动作所获取的收益
      */
     private float reward;
 
-    public Transition(float[] state, A action, boolean mask, float[] nextState, float reward) {
-        this.state = state != null ? state.clone() : null;
+    public Transition(S state, A action, boolean mask, S nextState, float reward) {
+        this.state = state;
         this.action = action;
         this.mask = mask;
-        this.nextState = nextState != null ? nextState.clone() : null;
+        this.nextState = nextState;
         this.reward = reward;
     }
 
-    public float[] getState() {
+    public S getState() {
         return state;
     }
 
@@ -59,7 +60,7 @@ public class Transition<A extends Action> {
         return mask;
     }
 
-    public float[] getNextState() {
+    public S getNextState() {
         return nextState;
     }
 

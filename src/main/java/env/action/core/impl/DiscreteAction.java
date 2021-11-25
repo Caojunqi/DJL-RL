@@ -1,8 +1,8 @@
-package env.common.action.impl;
+package env.action.core.impl;
 
-import env.common.action.Action;
-import env.common.action.collector.DiscreteActionCollector;
-import env.common.spaces.action.DiscreteActionSpace;
+import env.action.collector.impl.DiscreteActionCollector;
+import env.action.core.IAction;
+import env.action.space.impl.DiscreteActionSpace;
 
 /**
  * 针对{@link DiscreteActionSpace}型动作空间的Action数据
@@ -10,7 +10,7 @@ import env.common.spaces.action.DiscreteActionSpace;
  * @author Caojunqi
  * @date 2021-09-13 11:25
  */
-public class DiscreteAction implements Action {
+public class DiscreteAction implements IAction {
 
     private int actionData;
 
@@ -19,7 +19,7 @@ public class DiscreteAction implements Action {
     }
 
     @Override
-    public Class<?> getCollectorClz() {
+    public Class<DiscreteActionCollector> getCollectorClz() {
         return DiscreteActionCollector.class;
     }
 

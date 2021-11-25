@@ -1,8 +1,9 @@
 package env.common;
 
-import env.common.action.Action;
-import env.common.spaces.action.ActionSpace;
-import env.common.spaces.state.StateSpace;
+import env.action.core.IAction;
+import env.action.space.IActionSpace;
+import env.state.core.IState;
+import env.state.space.IStateSpace;
 import org.apache.commons.lang3.Validate;
 import utils.datatype.Snapshot;
 
@@ -34,7 +35,7 @@ import java.util.Random;
  * @author Caojunqi
  * @date 2021-09-09 20:59
  */
-public abstract class Environment<A extends Action> {
+public abstract class Environment<S extends IState, A extends IAction> {
     /**
      * 随机数生成器
      */
@@ -43,21 +44,21 @@ public abstract class Environment<A extends Action> {
     /**
      * 状态空间
      */
-    protected StateSpace stateSpace;
+    protected IStateSpace<S> stateSpace;
     /**
      * 动作空间
      */
-    protected ActionSpace<A> actionSpace;
+    protected IActionSpace<A> actionSpace;
     /**
      * 收益取值范围
      */
     protected double[] rewardRange;
 
-    public Environment(StateSpace stateSpace, ActionSpace<A> actionSpace) {
+    public Environment(IStateSpace<S> stateSpace, IActionSpace<A> actionSpace) {
         this(stateSpace, actionSpace, new double[]{Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY});
     }
 
-    public Environment(StateSpace stateSpace, ActionSpace<A> actionSpace, double[] rewardRange) {
+    public Environment(IStateSpace<S> stateSpace, IActionSpace<A> actionSpace, double[] rewardRange) {
         this.stateSpace = stateSpace;
         this.actionSpace = actionSpace;
         this.rewardRange = rewardRange;
@@ -74,12 +75,12 @@ public abstract class Environment<A extends Action> {
      *          reward (float) : amount of reward returned after previous action
      *          done (bool): whether the episode has ended, in which case further step() calls will return undefined results
      */
-    public final Snapshot step(A action) {
+    public final Snapshot<S> step(A action) {
         Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
         return doStep(action);
     }
 
-    protected abstract Snapshot doStep(A action);
+    protected abstract Snapshot<S> doStep(A action);
 
     /**
      * Resets the environment to an initial state and returns an initial
@@ -93,7 +94,7 @@ public abstract class Environment<A extends Action> {
      *
      * @return state (object): the initial state.
      */
-    public abstract float[] reset();
+    public abstract S reset();
 
     /**
      * Renders the environment.

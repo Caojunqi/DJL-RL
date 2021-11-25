@@ -2,8 +2,9 @@ package utils;
 
 import algorithm.BaseAlgorithm;
 import algorithm.CommonParameter;
+import env.action.core.IAction;
 import env.common.Environment;
-import env.common.action.Action;
+import env.state.core.IState;
 import utils.datatype.Snapshot;
 
 /**
@@ -12,11 +13,11 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:59
  */
-public class Runner<A extends Action, E extends Environment<A>> {
-    private final Environment<A> env;
-    private final BaseAlgorithm<A> algorithm;
+public class Runner<S extends IState<S>, A extends IAction> {
+    private final Environment<S, A> env;
+    private final BaseAlgorithm<S, A> algorithm;
 
-    public Runner(Environment<A> env, BaseAlgorithm<A> algorithm) {
+    public Runner(Environment<S, A> env, BaseAlgorithm<S, A> algorithm) {
         this.env = env;
         this.algorithm = algorithm;
     }
@@ -41,7 +42,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
         float minEpisodeReward = Float.POSITIVE_INFINITY;
         float maxEpisodeReward = Float.NEGATIVE_INFINITY;
         while (sampleNum < CommonParameter.MIN_BATCH_SIZE) {
-            float[] state = env.reset().clone();
+            S state = env.reset();
             boolean done = false;
             int step = 0;
             float episodeReward = 0;
@@ -49,8 +50,8 @@ public class Runner<A extends Action, E extends Environment<A>> {
             while (!done) {
                 env.render();
                 A action = algorithm.selectAction(state);
-                Snapshot snapshot = env.step(action);
-                algorithm.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
+                Snapshot<S> snapshot = env.step(action);
+                algorithm.collect(state.clone(), action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
                 done = snapshot.isDone();
                 state = snapshot.getNextState().clone();
@@ -78,14 +79,14 @@ public class Runner<A extends Action, E extends Environment<A>> {
     private void testModel() {
         algorithm.resetMemory();
 
-        float[] state = env.reset().clone();
+        S state = env.reset();
         boolean done = false;
         float episodeReward = 0;
 
         while (!done) {
             env.render();
             A action = algorithm.greedyAction(state);
-            Snapshot snapshot = env.step(action);
+            Snapshot<S> snapshot = env.step(action);
             algorithm.collect(state, action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
 
             episodeReward += snapshot.getReward();
@@ -93,7 +94,7 @@ public class Runner<A extends Action, E extends Environment<A>> {
             // System.out.println("TestModel=====State[" + Arrays.toString(state) + "]  Action[" + action.toString() + "]");
 
             done = snapshot.isDone();
-            state = snapshot.getNextState().clone();
+            state = snapshot.getNextState();
         }
 
         System.out.println("TestModel=====EpisodeReward [" + episodeReward + "]");

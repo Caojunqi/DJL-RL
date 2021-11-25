@@ -1,8 +1,8 @@
-package env.common.action.impl;
+package env.action.core.impl;
 
-import env.common.action.Action;
-import env.common.action.collector.BoxActionCollector;
-import env.common.spaces.action.BoxActionSpace;
+import env.action.collector.impl.BoxActionCollector;
+import env.action.core.IAction;
+import env.action.space.impl.BoxActionSpace;
 
 import java.util.Arrays;
 
@@ -12,7 +12,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-09-13 11:24
  */
-public class BoxAction implements Action {
+public class BoxAction implements IAction {
 
     private float[] actionData;
 

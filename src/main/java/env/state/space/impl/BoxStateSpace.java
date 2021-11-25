@@ -1,5 +1,7 @@
-package env.common.spaces.state;
+package env.state.space.impl;
 
+import env.state.core.impl.BoxState;
+import env.state.space.IStateSpace;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -8,7 +10,7 @@ import org.apache.commons.lang3.Validate;
  * @author Caojunqi
  * @date 2021-09-13 12:11
  */
-public class BoxStateSpace implements StateSpace {
+public class BoxStateSpace implements IStateSpace<BoxState> {
 
     /**
      * 连续型空间各个维度的取值范围

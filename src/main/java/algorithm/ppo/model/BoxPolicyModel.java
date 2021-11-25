@@ -13,7 +13,7 @@ import algorithm.BaseModelBlock;
 import algorithm.CommonParameter;
 import algorithm.ppo.PPOParameter;
 import algorithm.ppo.block.BoxPolicyModelBlock;
-import env.common.action.impl.BoxAction;
+import env.action.core.impl.BoxAction;
 import utils.datatype.PolicyPair;
 
 import java.util.ArrayList;

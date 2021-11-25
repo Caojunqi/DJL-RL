@@ -1,4 +1,6 @@
-package env.common.spaces.state;
+package env.state.space;
+
+import env.state.core.IState;
 
 /**
  * 状态空间接口
@@ -6,7 +8,7 @@ package env.common.spaces.state;
  * @author Caojunqi
  * @date 2021-09-13 12:06
  */
-public interface StateSpace {
+public interface IStateSpace<S extends IState> {
 
     /**
      * 状态空间维度

@@ -1,4 +1,7 @@
-package env.common.spaces.state;
+package env.state.space.impl;
+
+import env.state.core.impl.DiscreteState;
+import env.state.space.IStateSpace;
 
 /**
  * 离散型状态空间
@@ -6,7 +9,7 @@ package env.common.spaces.state;
  * @author Caojunqi
  * @date 2021-09-13 12:20
  */
-public class DiscreteStateSpace implements StateSpace {
+public class DiscreteStateSpace implements IStateSpace<DiscreteState> {
 
     /**
      * 离散型元素数目

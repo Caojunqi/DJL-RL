@@ -1,8 +1,8 @@
-package env.common.action.impl;
+package env.action.core.impl;
 
-import env.common.action.Action;
-import env.common.action.collector.MultiDiscreteActionCollector;
-import env.common.spaces.action.MultiDiscreteActionSpace;
+import env.action.collector.impl.MultiDiscreteActionCollector;
+import env.action.core.IAction;
+import env.action.space.impl.MultiDiscreteActionSpace;
 
 import java.util.Arrays;
 
@@ -12,7 +12,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-09-13 11:26
  */
-public class MultiDiscreteAction implements Action {
+public class MultiDiscreteAction implements IAction {
 
     private int[] actionData;
 
@@ -21,7 +21,7 @@ public class MultiDiscreteAction implements Action {
     }
 
     @Override
-    public Class<?> getCollectorClz() {
+    public Class<MultiDiscreteActionCollector> getCollectorClz() {
         return MultiDiscreteActionCollector.class;
     }
 
