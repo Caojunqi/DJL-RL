@@ -19,7 +19,8 @@ import algorithm.ppo.model.BasePolicyModel;
 import algorithm.sac.model.GaussianPolicyModel;
 import algorithm.sac.model.QFunctionModel;
 import env.action.core.impl.BoxAction;
-import env.state.core.impl.BoxState;
+import env.common.Environment;
+import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
 import utils.datatype.PolicyPair;
@@ -33,7 +34,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-10-12 15:03
  */
-public class SACContinuous extends BaseAlgorithm<BoxState, BoxAction> {
+public class SACContinuous<S extends IState<S>> extends BaseAlgorithm<S, BoxAction> {
     /**
      * 策略模型
      */
@@ -64,7 +65,9 @@ public class SACContinuous extends BaseAlgorithm<BoxState, BoxAction> {
     private NDArray logAlpha;
     private Optimizer alphasOptimizer;
 
-    public SACContinuous(int stateDim, int actionDim) {
+    public SACContinuous(Environment<S, BoxAction> env) {
+        int stateDim = env.getStateSpaceDim();
+        int actionDim = env.getActionSpaceDim();
         this.policyModel = GaussianPolicyModel.newModel(manager, stateDim, actionDim);
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
         this.qf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
@@ -84,13 +87,13 @@ public class SACContinuous extends BaseAlgorithm<BoxState, BoxAction> {
     }
 
     @Override
-    public BoxAction selectAction(BoxState state) {
+    public BoxAction selectAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public BoxAction greedyAction(BoxState state) {
+    public BoxAction greedyAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }

@@ -17,7 +17,8 @@ import algorithm.ppo.model.BaseValueModel;
 import algorithm.ppo.model.BoxPolicyModel;
 import algorithm.ppo.model.CriticValueModel;
 import env.action.core.impl.BoxAction;
-import env.state.core.impl.BoxState;
+import env.common.Environment;
+import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
 
@@ -30,7 +31,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-10-08 21:53
  */
-public class PPOContinuous extends BaseAlgorithm<BoxState, BoxAction> {
+public class PPOContinuous<S extends IState<S>> extends BaseAlgorithm<S, BoxAction> {
     /**
      * 策略模型
      */
@@ -42,7 +43,9 @@ public class PPOContinuous extends BaseAlgorithm<BoxState, BoxAction> {
     private BaseValueModel valueModel;
     private Optimizer valueOptimizer;
 
-    public PPOContinuous(int stateDim, int actionDim) {
+    public PPOContinuous(Environment<S, BoxAction> env) {
+        int stateDim = env.getStateSpaceDim();
+        int actionDim = env.getActionSpaceDim();
         this.policyModel = BoxPolicyModel.newModel(manager, stateDim, actionDim);
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
         this.valueModel = CriticValueModel.newModel(manager, stateDim);
@@ -50,13 +53,13 @@ public class PPOContinuous extends BaseAlgorithm<BoxState, BoxAction> {
     }
 
     @Override
-    public BoxAction selectAction(BoxState state) {
+    public BoxAction selectAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public BoxAction greedyAction(BoxState state) {
+    public BoxAction greedyAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }

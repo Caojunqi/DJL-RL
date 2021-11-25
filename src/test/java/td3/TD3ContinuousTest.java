@@ -3,6 +3,7 @@ package td3;
 import ai.djl.engine.Engine;
 import algorithm.td3.TD3Continuous;
 import env.demo.pendulum.Pendulum;
+import env.state.core.impl.BoxState;
 import utils.Runner;
 
 /**
@@ -16,7 +17,7 @@ public class TD3ContinuousTest {
     public static void main(String[] args) {
         Engine.getInstance().setRandomSeed(0);
         Pendulum env = new Pendulum();
-        TD3Continuous algorithm = new TD3Continuous(env.getStateSpaceDim(), env.getActionSpaceDim());
+        TD3Continuous<BoxState> algorithm = new TD3Continuous<>(env);
         env.seed(0);
         new Runner<>(env, algorithm)
                 .mainLoop();

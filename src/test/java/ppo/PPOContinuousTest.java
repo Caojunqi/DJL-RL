@@ -3,6 +3,7 @@ package ppo;
 import ai.djl.engine.Engine;
 import algorithm.ppo.PPOContinuous;
 import env.demo.mountaincar.MountainCarContinuous;
+import env.state.core.impl.BoxState;
 import utils.Runner;
 
 /**
@@ -16,7 +17,7 @@ public class PPOContinuousTest {
     public static void main(String[] args) {
         Engine.getInstance().setRandomSeed(0);
         MountainCarContinuous env = new MountainCarContinuous(false);
-        PPOContinuous algorithm = new PPOContinuous(env.getStateSpaceDim(), env.getActionSpaceDim());
+        PPOContinuous<BoxState> algorithm = new PPOContinuous<>(env);
         env.seed(0);
         new Runner<>(env, algorithm)
                 .mainLoop();

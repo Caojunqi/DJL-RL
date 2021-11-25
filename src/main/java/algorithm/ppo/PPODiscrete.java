@@ -17,7 +17,8 @@ import algorithm.ppo.model.BaseValueModel;
 import algorithm.ppo.model.CriticValueModel;
 import algorithm.ppo.model.DiscretePolicyModel;
 import env.action.core.impl.DiscreteAction;
-import env.state.core.impl.BoxState;
+import env.common.Environment;
+import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
 
@@ -30,7 +31,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-09-16 15:44
  */
-public class PPODiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
+public class PPODiscrete<S extends IState<S>> extends BaseAlgorithm<S, DiscreteAction> {
     /**
      * 策略模型
      */
@@ -42,7 +43,9 @@ public class PPODiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
     private BaseValueModel valueModel;
     private Optimizer valueOptimizer;
 
-    public PPODiscrete(int stateDim, int actionDim) {
+    public PPODiscrete(Environment<S, DiscreteAction> env) {
+        int stateDim = env.getStateSpaceDim();
+        int actionDim = env.getActionSpaceDim();
         this.policyModel = DiscretePolicyModel.newModel(manager, stateDim, actionDim);
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
         this.valueModel = CriticValueModel.newModel(manager, stateDim);
@@ -50,13 +53,13 @@ public class PPODiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
     }
 
     @Override
-    public DiscreteAction selectAction(BoxState state) {
+    public DiscreteAction selectAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public DiscreteAction greedyAction(BoxState state) {
+    public DiscreteAction greedyAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }

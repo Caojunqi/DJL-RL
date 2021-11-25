@@ -19,7 +19,8 @@ import algorithm.ppo.model.BasePolicyModel;
 import algorithm.sac.model.DiscreteGaussianPolicyModel;
 import algorithm.sac.model.DiscreteQFunctionModel;
 import env.action.core.impl.DiscreteAction;
-import env.state.core.impl.BoxState;
+import env.common.Environment;
+import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
 import utils.datatype.PolicyPair;
@@ -33,7 +34,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-10-26 11:26
  */
-public class SACDiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
+public class SACDiscrete<S extends IState<S>> extends BaseAlgorithm<S, DiscreteAction> {
 
     /**
      * 策略模型
@@ -65,7 +66,9 @@ public class SACDiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
     private NDArray logAlpha;
     private Optimizer alphasOptimizer;
 
-    public SACDiscrete(int stateDim, int actionDim) {
+    public SACDiscrete(Environment<S, DiscreteAction> env) {
+        int stateDim = env.getStateSpaceDim();
+        int actionDim = env.getActionSpaceDim();
         this.policyModel = DiscreteGaussianPolicyModel.newModel(manager, stateDim, actionDim);
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(SACParameter.POLICY_LR)).build();
         this.qf1 = DiscreteQFunctionModel.newModel(manager, stateDim, actionDim);
@@ -85,13 +88,13 @@ public class SACDiscrete extends BaseAlgorithm<BoxState, DiscreteAction> {
     }
 
     @Override
-    public DiscreteAction selectAction(BoxState state) {
+    public DiscreteAction selectAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public DiscreteAction greedyAction(BoxState state) {
+    public DiscreteAction greedyAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }
