@@ -1,4 +1,4 @@
-package env.demo.mountaincar;
+package demo.mountaincar;
 
 import env.action.core.impl.BoxAction;
 import env.action.space.impl.BoxActionSpace;

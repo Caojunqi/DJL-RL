@@ -1,8 +1,9 @@
 package sac;
 
 import ai.djl.engine.Engine;
+import ai.djl.ndarray.NDManager;
 import algorithm.sac.SACDiscrete;
-import env.demo.cartpole.CartPole;
+import demo.cartpole.CartPole;
 import env.state.core.impl.BoxState;
 import utils.Runner;
 
@@ -15,9 +16,10 @@ import utils.Runner;
 public class SACDiscreteTest {
 
     public static void main(String[] args) {
+        NDManager manager = NDManager.newBaseManager();
         Engine.getInstance().setRandomSeed(0);
         CartPole env = new CartPole(false);
-        SACDiscrete<BoxState> algorithm = new SACDiscrete<>(env);
+        SACDiscrete<BoxState> algorithm = new SACDiscrete<>(manager, env);
         env.seed(0);
         new Runner<>(env, algorithm)
                 .mainLoop();

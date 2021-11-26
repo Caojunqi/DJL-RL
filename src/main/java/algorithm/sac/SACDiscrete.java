@@ -66,7 +66,8 @@ public class SACDiscrete<S extends IState<S>> extends BaseAlgorithm<S, DiscreteA
     private NDArray logAlpha;
     private Optimizer alphasOptimizer;
 
-    public SACDiscrete(Environment<S, DiscreteAction> env) {
+    public SACDiscrete(NDManager manager, Environment<S, DiscreteAction> env) {
+        super(manager);
         int stateDim = env.getStateSpaceDim();
         int actionDim = env.getActionSpaceDim();
         this.policyModel = DiscreteGaussianPolicyModel.newModel(manager, stateDim, actionDim);

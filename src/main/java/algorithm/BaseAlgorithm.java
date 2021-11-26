@@ -15,15 +15,19 @@ import utils.Memory;
  * @author Caojunqi
  * @date 2021-10-08 21:04
  */
-public abstract class BaseAlgorithm<S extends IState, A extends IAction> {
+public abstract class BaseAlgorithm<S extends IState<S>, A extends IAction> {
     /**
      * NDArray管理类
      */
-    protected NDManager manager = NDManager.newBaseManager();
+    protected NDManager manager;
     /**
      * 样本缓存
      */
     protected Memory<S, A> memory = new Memory<>();
+
+    public BaseAlgorithm(NDManager manager) {
+        this.manager = manager;
+    }
 
     /**
      * 根据指定环境状态选择一个合适的动作

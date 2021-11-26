@@ -14,10 +14,7 @@ import algorithm.BaseAlgorithm;
 import algorithm.CommonParameter;
 import algorithm.ppo.model.BasePolicyModel;
 import algorithm.ppo.model.BaseValueModel;
-import algorithm.ppo.model.CriticValueModel;
-import algorithm.ppo.model.DiscretePolicyModel;
 import env.action.core.impl.DiscreteAction;
-import env.common.Environment;
 import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -43,12 +40,11 @@ public class PPODiscrete<S extends IState<S>> extends BaseAlgorithm<S, DiscreteA
     private BaseValueModel valueModel;
     private Optimizer valueOptimizer;
 
-    public PPODiscrete(Environment<S, DiscreteAction> env) {
-        int stateDim = env.getStateSpaceDim();
-        int actionDim = env.getActionSpaceDim();
-        this.policyModel = DiscretePolicyModel.newModel(manager, stateDim, actionDim);
+    public PPODiscrete(NDManager manager, BasePolicyModel<DiscreteAction> policyModel, BaseValueModel valueModel) {
+        super(manager);
+        this.policyModel = policyModel;
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
-        this.valueModel = CriticValueModel.newModel(manager, stateDim);
+        this.valueModel = valueModel;
         this.valueOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
     }
 

@@ -14,10 +14,7 @@ import algorithm.BaseAlgorithm;
 import algorithm.CommonParameter;
 import algorithm.ppo.model.BasePolicyModel;
 import algorithm.ppo.model.BaseValueModel;
-import algorithm.ppo.model.BoxPolicyModel;
-import algorithm.ppo.model.CriticValueModel;
 import env.action.core.impl.BoxAction;
-import env.common.Environment;
 import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
@@ -43,12 +40,11 @@ public class PPOContinuous<S extends IState<S>> extends BaseAlgorithm<S, BoxActi
     private BaseValueModel valueModel;
     private Optimizer valueOptimizer;
 
-    public PPOContinuous(Environment<S, BoxAction> env) {
-        int stateDim = env.getStateSpaceDim();
-        int actionDim = env.getActionSpaceDim();
-        this.policyModel = BoxPolicyModel.newModel(manager, stateDim, actionDim);
+    public PPOContinuous(NDManager manager, BasePolicyModel<BoxAction> policyModel, BaseValueModel valueModel) {
+        super(manager);
+        this.policyModel = policyModel;
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
-        this.valueModel = CriticValueModel.newModel(manager, stateDim);
+        this.valueModel = valueModel;
         this.valueOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build();
     }
 

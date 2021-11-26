@@ -63,7 +63,8 @@ public class TD3Continuous<S extends IState<S>> extends BaseAlgorithm<S, BoxActi
      */
     private BaseModel targetQf2;
 
-    public TD3Continuous(Environment<S, BoxAction> env) {
+    public TD3Continuous(NDManager manager, Environment<S, BoxAction> env) {
+        super(manager);
         int stateDim = env.getStateSpaceDim();
         int actionDim = env.getActionSpaceDim();
         this.policyModel = ActorModel.newModel(manager, stateDim, actionDim);

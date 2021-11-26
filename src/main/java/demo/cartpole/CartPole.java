@@ -1,4 +1,4 @@
-package env.demo.cartpole;
+package demo.cartpole;
 
 import env.action.core.impl.DiscreteAction;
 import env.action.space.impl.DiscreteActionSpace;

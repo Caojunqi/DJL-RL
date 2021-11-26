@@ -65,7 +65,8 @@ public class SACContinuous<S extends IState<S>> extends BaseAlgorithm<S, BoxActi
     private NDArray logAlpha;
     private Optimizer alphasOptimizer;
 
-    public SACContinuous(Environment<S, BoxAction> env) {
+    public SACContinuous(NDManager manager, Environment<S, BoxAction> env) {
+        super(manager);
         int stateDim = env.getStateSpaceDim();
         int actionDim = env.getActionSpaceDim();
         this.policyModel = GaussianPolicyModel.newModel(manager, stateDim, actionDim);
