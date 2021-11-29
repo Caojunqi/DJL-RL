@@ -1,7 +1,7 @@
+import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDManager;
-import algorithm.BaseModel;
-import algorithm.sac.model.QFunctionModel;
-import utils.Helper;
+import ai.djl.ndarray.types.DataType;
+import ai.djl.ndarray.types.Shape;
 
 /**
  * 测试类
@@ -13,9 +13,8 @@ public class MainTest {
 
     public static void main(String[] args) {
         NDManager manager = NDManager.newBaseManager();
-        BaseModel qf1 = QFunctionModel.newModel(manager, 3, 2);
-        BaseModel qf2 = QFunctionModel.newModel(manager, 3, 2);
-        Helper.copyModel(qf1, qf2);
+        NDArray array = manager.randomInteger(1, 10, new Shape(30, 2, 3, 4), DataType.INT32);
+        NDArray newArray = array.reshape(array.getShape().get(0), -1);
         System.out.println("llll");
     }
 
