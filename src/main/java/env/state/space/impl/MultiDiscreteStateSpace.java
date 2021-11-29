@@ -26,4 +26,9 @@ public class MultiDiscreteStateSpace implements IStateSpace<MultiDiscreteState> 
     public int getDim() {
         return this.counts.length;
     }
+
+    @Override
+    public int getFlatDim() {
+        return this.counts.length * this.counts[0];
+    }
 }

@@ -27,6 +27,11 @@ public class BoxStateSpace implements IStateSpace<BoxState> {
         return spaces.length;
     }
 
+    @Override
+    public int getFlatDim() {
+        return spaces.length * spaces[0].length;
+    }
+
     /**
      * 检验数据合法性
      */
