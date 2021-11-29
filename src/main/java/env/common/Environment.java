@@ -35,7 +35,7 @@ import java.util.Random;
  * @author Caojunqi
  * @date 2021-09-09 20:59
  */
-public abstract class Environment<S extends IState, A extends IAction> {
+public abstract class Environment<S extends IState<S>, A extends IAction> {
     /**
      * 随机数生成器
      */
