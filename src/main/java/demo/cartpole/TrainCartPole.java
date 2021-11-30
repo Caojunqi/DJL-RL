@@ -1,6 +1,7 @@
 package demo.cartpole;
 
 import ai.djl.Model;
+import ai.djl.engine.Engine;
 import ai.djl.modality.rl.env.RlEnv;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
@@ -12,6 +13,7 @@ import ai.djl.training.loss.Loss;
 import ai.djl.training.optimizer.Adam;
 import ai.djl.training.tracker.Tracker;
 import algorithm.BaseModelBlock;
+import algorithm.CommonParameter;
 import algorithm.ppo.PPOAgent;
 import algorithm.ppo.PPOParameter;
 import algorithm.ppo.block.CriticValueModelBlock;
@@ -44,9 +46,10 @@ public class TrainCartPole {
             return null;
         }
 
-        int epoch = arguments.getEpoch();
-        int batchSize = arguments.getBatchSize();
-        int replayBufferSize = 1024;
+        Engine.getInstance().setRandomSeed(0);
+        int epoch = 500;
+        int batchSize = 64;
+        int replayBufferSize = 2048;
         int gamesPerEpoch = 128;
         // Validation is deterministic, thus one game is enough
         int validationGamesPerEpoch = 1;
@@ -80,17 +83,28 @@ public class TrainCartPole {
 
         PPOAgent agent = new PPOAgent(random, policyTrainer, valueTrainer, rewardDiscount);
         for (int i = 0; i < epoch; i++) {
-            for (int j = 0; j < gamesPerEpoch; j++) {
+
+            int episode = 0;
+            int size = 0;
+            while (size < replayBufferSize) {
+                episode++;
                 float result = env.runEnvironment(agent, true);
+                size += (int) result;
+                System.out.println("[" + episode + "]train:" + result);
+            }
+
+            for (int j = 0; j < gamesPerEpoch; j++) {
                 RlEnv.Step[] batchSteps = env.getBatch();
                 agent.trainBatch(batchSteps);
                 policyTrainer.step();
                 valueTrainer.step();
+//                System.out.println("train[" + i + "-" + j + "]:" + result);
             }
-        }
 
-        for (int j = 0; j < validationGamesPerEpoch; j++) {
-            float result = env.runEnvironment(agent, false);
+            for (int j = 0; j < validationGamesPerEpoch; j++) {
+                float result = env.runEnvironment(agent, false);
+                System.out.println("test:" + result);
+            }
         }
 
         policyTrainer.notifyListeners(listener -> listener.onTrainingEnd(policyTrainer));
@@ -103,7 +117,7 @@ public class TrainCartPole {
         return new DefaultTrainingConfig(Loss.l2Loss())
                 .addTrainingListeners(TrainingListener.Defaults.basic())
                 .optOptimizer(
-                        Adam.builder().optLearningRateTracker(Tracker.fixed(0.0001F)).build());
+                        Adam.builder().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build());
     }
 
 }
