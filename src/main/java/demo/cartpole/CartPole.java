@@ -1,12 +1,14 @@
 package demo.cartpole;
 
-import env.action.core.impl.DiscreteAction;
-import env.action.space.impl.DiscreteActionSpace;
-import env.common.Environment;
-import env.state.core.impl.BoxState;
-import env.state.space.impl.BoxStateSpace;
-import org.apache.commons.lang3.Validate;
-import utils.datatype.Snapshot;
+import ai.djl.modality.rl.ActionSpace;
+import ai.djl.modality.rl.LruReplayBuffer;
+import ai.djl.modality.rl.ReplayBuffer;
+import ai.djl.modality.rl.env.RlEnv;
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+
+import java.util.Random;
 
 /*_
  * 复刻gym中的CartPole-v1环境
@@ -58,7 +60,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:07
  */
-public class CartPole extends Environment<BoxState, DiscreteAction> {
+public class CartPole implements RlEnv {
     private static final double[][] STATE_SPACE = new double[][]{{-4.8, 4.8},
             {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}, {-0.418, 0.418},
             {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}};
@@ -74,62 +76,159 @@ public class CartPole extends Environment<BoxState, DiscreteAction> {
     private static final double THETA_THRESHOLD = 12 * 2 * Math.PI / 360;
     private static final double MAX_EPISODE_LENGTH = 500;
 
-    private final float[] state = new float[]{0.0f, 0.0f, 0.0f, 0.0f};
-    private final CartPoleVisualizer visualizer;
+    private NDManager manager;
+    private ReplayBuffer replayBuffer;
+    private Random random;
+    private State state;
 
-    public int count = 0;
 
-    public CartPole(boolean visual) {
-        super(new BoxStateSpace(STATE_SPACE), new DiscreteActionSpace(2));
-        visualizer = visual ? new CartPoleVisualizer(LENGTH, X_THRESHOLD, 1000) : null;
+    /**
+     * @param manager    the manager for creating the env in
+     * @param batchSize  the number of steps to train on per batch
+     * @param bufferSize the number of steps to hold in the buffer
+     */
+    public CartPole(NDManager manager, Random random, int batchSize, int bufferSize) {
+        this.manager = manager;
+        this.replayBuffer = new LruReplayBuffer(batchSize, bufferSize);
+        this.random = random;
+        this.state = new State(new float[]{0.0f, 0.0f, 0.0f, 0.0f}, 0);
     }
 
     @Override
-    protected Snapshot<BoxState> doStep(DiscreteAction action) {
-        Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
-        int actionData = action.getActionData();
+    public void reset() {
+        for (int i = 0; i < 4; i++) {
+            state.stateData[i] = random.nextFloat() * 0.1f - 0.05f;
+        }
+        this.state.count = 0;
+    }
+
+    @Override
+    public void close() {
+        manager.close();
+    }
+
+    @Override
+    public NDList getObservation() {
+        return state.getObservation(manager);
+    }
+
+    @Override
+    public ActionSpace getActionSpace() {
+        return state.getActionSpace(manager);
+    }
+
+    @Override
+    public Step step(NDList action, boolean training) {
+        State preState = state;
+        state = new State(preState.stateData.clone(), preState.count);
+
+        int actionData = action.singletonOrThrow().getInt();
         double force = actionData == 1 ? FORCE_MAG : -FORCE_MAG;
-        double cos_theta = Math.cos(state[2]);
-        double sin_theta = Math.sin(state[2]);
-        double temp = (force + POLEMASS_LENGTH * Math.pow(state[3], 2) * sin_theta) / TOTAL_MASS;
+        double cos_theta = Math.cos(state.stateData[2]);
+        double sin_theta = Math.sin(state.stateData[2]);
+        double temp = (force + POLEMASS_LENGTH * Math.pow(state.stateData[3], 2) * sin_theta) / TOTAL_MASS;
 
         double theta_acc = ((GRAVITY * sin_theta - temp * cos_theta)
                 / (LENGTH * (4.0 / 3.0 - POLE_MASS * Math.pow(cos_theta, 2) / TOTAL_MASS)));
         double x_acc = temp - POLEMASS_LENGTH * theta_acc * cos_theta / TOTAL_MASS;
 
-        state[0] += TAU * state[1];
-        state[1] += TAU * x_acc;
-        state[2] += TAU * state[3];
-        if (state[2] > Math.PI) {
-            state[2] -= 2 * Math.PI;
-        } else if (state[2] < -Math.PI) {
-            state[2] += 2 * Math.PI;
+        state.stateData[0] += TAU * state.stateData[1];
+        state.stateData[1] += TAU * x_acc;
+        state.stateData[2] += TAU * state.stateData[3];
+        if (state.stateData[2] > Math.PI) {
+            state.stateData[2] -= 2 * Math.PI;
+        } else if (state.stateData[2] < -Math.PI) {
+            state.stateData[2] += 2 * Math.PI;
         }
-        state[3] += TAU * theta_acc;
-        boolean done = (state[0] < -X_THRESHOLD || state[0] > X_THRESHOLD || state[2] < -THETA_THRESHOLD
-                || state[2] > THETA_THRESHOLD);
+        state.stateData[3] += TAU * theta_acc;
+        boolean done = (state.stateData[0] < -X_THRESHOLD || state.stateData[0] > X_THRESHOLD || state.stateData[2] < -THETA_THRESHOLD
+                || state.stateData[2] > THETA_THRESHOLD);
 
-        return new Snapshot<>(new BoxState(state), 1.0f, count++ > MAX_EPISODE_LENGTH || done);
+        CartPoleStep step = new CartPoleStep(manager.newSubManager(), preState, state, action, 1.0f, state.count++ > MAX_EPISODE_LENGTH || done);
+        if (training) {
+            replayBuffer.addStep(step);
+        }
+        return step;
     }
 
     @Override
-    public BoxState reset() {
-        for (int i = 0; i < 4; i++) {
-            state[i] = random.nextFloat() * 0.1f - 0.05f;
+    public Step[] getBatch() {
+        return replayBuffer.getBatch();
+    }
+
+    static final class CartPoleStep implements RlEnv.Step {
+        private NDManager manager;
+        private State preState;
+        private State postState;
+        private NDList action;
+        private float reward;
+        private boolean done;
+
+        private CartPoleStep(NDManager manager, State preState, State postState, NDList action, float reward, boolean done) {
+            this.manager = manager;
+            this.preState = preState;
+            this.postState = postState;
+            this.action = action;
+            this.reward = reward;
+            this.done = done;
         }
-        count = 0;
-        return new BoxState(state);
-    }
 
-    @Override
-    public void render() {
-        if (visualizer != null) {
-            visualizer.update(state);
+        @Override
+        public NDList getPreObservation() {
+            return preState.getObservation(manager);
+        }
+
+        @Override
+        public NDList getAction() {
+            return action;
+        }
+
+        @Override
+        public NDList getPostObservation() {
+            return postState.getObservation(manager);
+        }
+
+        @Override
+        public ActionSpace getPostActionSpace() {
+            return postState.getActionSpace(manager);
+        }
+
+        @Override
+        public NDArray getReward() {
+            return manager.create(reward);
+        }
+
+        @Override
+        public boolean isDone() {
+            return done;
+        }
+
+        @Override
+        public void close() {
+            manager.close();
         }
     }
 
-    @Override
-    public void close() {
+    private static class State {
+        float[] stateData;
+        int count;
 
+        private State(float[] stateData, int count) {
+            this.stateData = stateData;
+            this.count = count;
+        }
+
+        private NDList getObservation(NDManager manager) {
+            return new NDList(manager.create(stateData));
+        }
+
+        private ActionSpace getActionSpace(NDManager manager) {
+            ActionSpace actionSpace = new ActionSpace();
+            for (int i = 0; i < 2; i++) {
+                actionSpace.add(new NDList(manager.create(i)));
+            }
+            return actionSpace;
+        }
     }
+
 }
