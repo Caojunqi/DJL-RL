@@ -95,8 +95,8 @@ public class PPOAgent implements RlAgent {
         }
 
 
-        policyTrainer.notifyListeners(listener -> listener.onTrainingBatch(policyTrainer, batchData));
-        valueTrainer.notifyListeners(listener -> listener.onTrainingBatch(valueTrainer, batchData));
+//        policyTrainer.notifyListeners(listener -> listener.onTrainingBatch(policyTrainer, batchData));
+//        valueTrainer.notifyListeners(listener -> listener.onTrainingBatch(valueTrainer, batchData));
     }
 
     private NDList[] buildInputs(NDList observation) {
@@ -130,7 +130,7 @@ public class PPOAgent implements RlAgent {
     public NDList[] buildBatchReward(RlEnv.Step[] batchSteps) {
         NDList[] result = new NDList[batchSteps.length];
         for (int i = 0; i < batchSteps.length; i++) {
-            result[i] = new NDList(batchSteps[i].getReward());
+            result[i] = new NDList(batchSteps[i].getReward().expandDims(0));
         }
         return result;
     }
@@ -176,6 +176,4 @@ public class PPOAgent implements RlAgent {
         }
         return sample;
     }
-
-
 }
