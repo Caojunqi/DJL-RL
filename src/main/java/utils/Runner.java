@@ -42,7 +42,7 @@ public class Runner<S extends IState<S>, A extends IAction> {
         float minEpisodeReward = Float.POSITIVE_INFINITY;
         float maxEpisodeReward = Float.NEGATIVE_INFINITY;
         while (sampleNum < CommonParameter.MIN_BATCH_SIZE) {
-            S state = env.reset();
+            S state = env.reset().clone();
             boolean done = false;
             int step = 0;
             float episodeReward = 0;
@@ -51,7 +51,7 @@ public class Runner<S extends IState<S>, A extends IAction> {
                 env.render();
                 A action = algorithm.selectAction(state);
                 Snapshot<S> snapshot = env.step(action);
-                algorithm.collect(state.clone(), action, snapshot.isDone(), snapshot.getNextState(), snapshot.getReward());
+                algorithm.collect(state, action, snapshot.isDone(), snapshot.getNextState().clone(), snapshot.getReward());
 
                 done = snapshot.isDone();
                 state = snapshot.getNextState().clone();
