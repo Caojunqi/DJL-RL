@@ -24,4 +24,9 @@ public class DiscreteStateSpace implements IStateSpace<DiscreteState> {
     public int getDim() {
         return num;
     }
+
+    @Override
+    public int getFlatDim() {
+        return num;
+    }
 }

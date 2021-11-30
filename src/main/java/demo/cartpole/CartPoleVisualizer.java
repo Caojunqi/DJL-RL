@@ -1,4 +1,4 @@
-package env.demo.cartpole;
+package demo.cartpole;
 
 import env.common.BaseVisualizer;
 

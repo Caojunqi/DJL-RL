@@ -1,4 +1,4 @@
-package env.demo.pendulum;
+package demo.pendulum;
 
 import ai.djl.util.RandomUtils;
 import env.action.core.impl.BoxAction;

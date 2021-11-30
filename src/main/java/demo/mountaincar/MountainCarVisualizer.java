@@ -1,4 +1,4 @@
-package env.demo.mountaincar;
+package demo.mountaincar;
 
 import env.common.BaseVisualizer;
 

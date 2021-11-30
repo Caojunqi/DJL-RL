@@ -19,7 +19,8 @@ import algorithm.sac.SACParameter;
 import algorithm.sac.model.QFunctionModel;
 import algorithm.td3.model.ActorModel;
 import env.action.core.impl.BoxAction;
-import env.state.core.impl.BoxState;
+import env.common.Environment;
+import env.state.core.IState;
 import utils.Helper;
 import utils.MemoryBatch;
 import utils.datatype.PolicyPair;
@@ -33,7 +34,7 @@ import java.util.Arrays;
  * @author Caojunqi
  * @date 2021-11-01 11:01
  */
-public class TD3Continuous extends BaseAlgorithm<BoxState, BoxAction> {
+public class TD3Continuous<S extends IState<S>> extends BaseAlgorithm<S, BoxAction> {
     /**
      * 策略模型
      */
@@ -62,7 +63,10 @@ public class TD3Continuous extends BaseAlgorithm<BoxState, BoxAction> {
      */
     private BaseModel targetQf2;
 
-    public TD3Continuous(int stateDim, int actionDim) {
+    public TD3Continuous(NDManager manager, Environment<S, BoxAction> env) {
+        super(manager);
+        int stateDim = env.getStateSpaceDim();
+        int actionDim = env.getActionSpaceDim();
         this.policyModel = ActorModel.newModel(manager, stateDim, actionDim);
         this.policyOptimizer = Optimizer.adam().optLearningRateTracker(Tracker.fixed(TD3Parameter.POLICY_LR)).optWeightDecays(SACParameter.POLICY_WEIGHT_DECAY).build();
         this.qf1 = QFunctionModel.newModel(manager, stateDim, actionDim);
@@ -79,13 +83,13 @@ public class TD3Continuous extends BaseAlgorithm<BoxState, BoxAction> {
     }
 
     @Override
-    public BoxAction selectAction(BoxState state) {
+    public BoxAction selectAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), false, false, true).singletonOrThrow();
     }
 
     @Override
-    public BoxAction greedyAction(BoxState state) {
+    public BoxAction greedyAction(S state) {
         NDManager subManager = manager.newSubManager();
         return policyModel.policy(state.singleStateList(subManager), true, false, true).singletonOrThrow();
     }
