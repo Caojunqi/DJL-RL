@@ -72,13 +72,18 @@ public class PPO implements RlAgent {
             NDArray actions = buildBatchAction(batchSteps);
             NDArray rewards = buildBatchReward(batchSteps);
             boolean[] masks = buildBatchDone(batchSteps);
+            NDArray lastState = batchSteps[batchSteps.length - 1].getPostObservation().singletonOrThrow().expandDims(0);
 
             NDList output = trainer.forward(new NDList(states));
             NDArray actionsPred = output.get(0);
             NDArray values = output.get(1).duplicate();
             NDArray actionLogProbPred = output.get(2).duplicate();
+            NDArray distribution = Helper.gather(actionLogProbPred, actions.toIntArray());
 
-            NDList estimates = estimateAdvantage(values, rewards, masks);
+            NDList lastValueOutput = trainer.forward(new NDList(lastState));
+            float lastValue = lastValueOutput.get(1).duplicate().getFloat(-1);
+
+            NDList estimates = estimateAdvantage(lastValue, values, rewards, masks);
             NDArray expectedReturns = estimates.get(0);
             NDArray advantages = estimates.get(1);
 
@@ -93,16 +98,18 @@ public class PPO implements RlAgent {
                     NDArray actionLogProbPredSubset = getSample(subManager, actionLogProbPred, index);
                     NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
                     NDArray advantagesSubset = getSample(subManager, advantages, index);
+                    NDArray distributionSubset = getSample(subManager,distribution,index);
 
                     NDArray actionProPred = actionLogProbPredSubset.exp();
-                    NDArray entropy = actionLogProbPredSubset.mul(actionProPred).sum().neg();
+                    NDArray entropy = actionLogProbPredSubset.mul(actionProPred).sum(new int[]{-1}).neg();
 
                     NDList outputBatch = trainer.forward(new NDList(statesSubset));
                     NDArray actionsBatch = outputBatch.get(0);
                     NDArray valuesBatch = outputBatch.get(1);
                     NDArray actionLogProbBatch = outputBatch.get(2);
+                    NDArray distributionBatch = Helper.gather(actionLogProbBatch, actionsSubset.toIntArray());
 
-                    NDArray ratios = actionLogProbBatch.sub(actionLogProbPredSubset).exp();
+                    NDArray ratios = distributionBatch.sub(distributionSubset).exp();
 
                     NDArray surr1 = ratios.mul(advantagesSubset);
                     NDArray surr2 = ratios.clip(PPOParameter.RATIO_LOWER_BOUND, PPOParameter.RATIO_UPPER_BOUND).mul(advantagesSubset);
@@ -117,7 +124,7 @@ public class PPO implements RlAgent {
                     NDArray loss = lossActor.add(lossEntropy.mul(entCoef)).add(lossCritic.mul(vfCoef));
 
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
-                        collector.backward(lossCritic);
+                        collector.backward(loss);
                     }
                 }
             }
@@ -157,12 +164,12 @@ public class PPO implements RlAgent {
         return resultData;
     }
 
-    private NDList estimateAdvantage(NDArray values, NDArray rewards, boolean[] masks) {
+    private NDList estimateAdvantage(float lastValue, NDArray values, NDArray rewards, boolean[] masks) {
         NDManager manager = rewards.getManager();
         NDArray deltas = manager.create(rewards.getShape());
         NDArray advantages = manager.create(rewards.getShape());
 
-        float prevValue = 0;
+        float prevValue = lastValue;
         float prevAdvantage = 0;
         for (int i = (int) rewards.getShape().get(0) - 1; i >= 0; i--) {
             NDIndex index = new NDIndex(i);
