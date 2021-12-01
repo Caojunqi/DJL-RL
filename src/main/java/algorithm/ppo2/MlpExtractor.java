@@ -103,13 +103,14 @@ public class MlpExtractor extends AbstractBlock {
         this.sharedLayer.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
         this.sharedLayer.initialize(manager, dataType, inputShapes[0]);
 
+        Shape sharedOutputShape = this.sharedOutputSize == 0 ? inputShapes[0] : new Shape(this.sharedOutputSize);
         this.policyLayer.setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
         this.policyLayer.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
-        this.policyLayer.initialize(manager, dataType, new Shape(sharedOutputSize));
+        this.policyLayer.initialize(manager, dataType, sharedOutputShape);
 
         this.valueLayer.setInitializer(new XavierInitializer(), Parameter.Type.WEIGHT);
         this.valueLayer.setInitializer(Initializer.ZEROS, Parameter.Type.BIAS);
-        this.valueLayer.initialize(manager, dataType, new Shape(sharedOutputSize));
+        this.valueLayer.initialize(manager, dataType, sharedOutputShape);
     }
 
     public NDList forwardActor(ParameterStore parameterStore, NDList inputs, boolean training) {
