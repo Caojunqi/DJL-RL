@@ -7,6 +7,7 @@ import ai.djl.modality.rl.env.RlEnv;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
+import algorithm.ppo2.FixedBuffer;
 
 import java.util.Random;
 
@@ -89,7 +90,7 @@ public class CartPole implements RlEnv {
      */
     public CartPole(NDManager manager, Random random, int batchSize, int bufferSize) {
         this.manager = manager;
-        this.replayBuffer = new LruReplayBuffer(batchSize, bufferSize);
+        this.replayBuffer = new FixedBuffer(batchSize, bufferSize);
         this.random = random;
         this.state = new State(new float[]{0.0f, 0.0f, 0.0f, 0.0f}, 0);
     }

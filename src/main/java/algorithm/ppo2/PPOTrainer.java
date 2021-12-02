@@ -49,7 +49,7 @@ public class PPOTrainer {
         int epoch = 500;
         int batchSize = 64;
         int replayBufferSize = 2048;
-        int gamesPerEpoch = 128;
+        int gamesPerEpoch = 1;
         // Validation is deterministic, thus one game is enough
         int validationGamesPerEpoch = 1;
         float rewardDiscount = 0.9f;
@@ -60,7 +60,7 @@ public class PPOTrainer {
 
         Random random = new Random(0);
         NDManager mainManager = NDManager.newBaseManager();
-        CartPole env = new CartPole(mainManager, random, batchSize, replayBufferSize);
+        CartPole env = new CartPole(mainManager, random, replayBufferSize, replayBufferSize);
         int stateSpaceDim = (int) env.getObservation().singletonOrThrow().getShape().get(0);
         int actionSpaceDim = env.getActionSpace().size();
         Model policyModel = Model.newInstance("discrete_policy_model");
@@ -88,7 +88,7 @@ public class PPOTrainer {
             for (int j = 0; j < gamesPerEpoch; j++) {
                 RlEnv.Step[] batchSteps = env.getBatch();
                 agent.trainBatch(batchSteps);
-                policyTrainer.step();
+//                policyTrainer.step();
             }
 
             for (int j = 0; j < validationGamesPerEpoch; j++) {

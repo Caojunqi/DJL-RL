@@ -125,6 +125,7 @@ public class PPO implements RlAgent {
 
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(loss);
+                        trainer.step();
                     }
                 }
             }
