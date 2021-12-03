@@ -98,7 +98,7 @@ public class PPO implements RlAgent {
                     NDArray actionLogProbPredSubset = getSample(subManager, actionLogProbPred, index);
                     NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
                     NDArray advantagesSubset = getSample(subManager, advantages, index);
-                    NDArray distributionSubset = getSample(subManager,distribution,index);
+                    NDArray distributionSubset = getSample(subManager, distribution, index);
 
                     NDArray actionProPred = actionLogProbPredSubset.exp();
                     NDArray entropy = actionLogProbPredSubset.mul(actionProPred).sum(new int[]{-1}).neg();
@@ -129,8 +129,9 @@ public class PPO implements RlAgent {
                     }
                 }
             }
-        }
 
+            trainer.notifyListeners(listener -> listener.onTrainingBatch(trainer, null));
+        }
     }
 
     private NDList buildBatchPreObservation(RlEnv.Step[] batchSteps) {
