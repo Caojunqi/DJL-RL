@@ -8,7 +8,6 @@ import ai.djl.ndarray.types.Shape;
 import ai.djl.training.DefaultTrainingConfig;
 import ai.djl.training.Trainer;
 import ai.djl.training.TrainingResult;
-import ai.djl.training.listener.TrainingListener;
 import ai.djl.training.loss.Loss;
 import ai.djl.training.optimizer.Adam;
 import ai.djl.training.tracker.Tracker;
@@ -104,7 +103,6 @@ public class PPOTrainer {
 
     public static DefaultTrainingConfig setupTrainingConfig() {
         return new DefaultTrainingConfig(Loss.l2Loss())
-                .addTrainingListeners(TrainingListener.Defaults.basic())
                 .optOptimizer(
                         Adam.builder().optLearningRateTracker(Tracker.fixed(CommonParameter.LEARNING_RATE)).build());
     }

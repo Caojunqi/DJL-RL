@@ -60,9 +60,17 @@ public class PPO implements RlAgent {
 
     @Override
     public NDList chooseAction(RlEnv env, boolean training) {
-        NDList[] inputs = new NDList[]{env.getObservation()};
-        NDArray action = trainer.forward(batchifier.batchify(inputs)).get(0).duplicate();
-        return new NDList(action);
+        try (NDManager manager = mainManager.newSubManager()) {
+            NDList[] inputs = buildInputs(manager, env);
+            NDArray action = trainer.forward(batchifier.batchify(inputs)).get(0).duplicate();
+            return new NDList(action);
+        }
+    }
+
+    private NDList[] buildInputs(NDManager manager, RlEnv env) {
+        NDList envObservation = env.getObservation();
+        envObservation.attach(manager);
+        return new NDList[]{envObservation};
     }
 
     @Override
