@@ -1,7 +1,6 @@
 package algorithm.ppo2;
 
 import ai.djl.engine.Engine;
-import ai.djl.modality.rl.agent.RlAgent;
 import ai.djl.modality.rl.env.RlEnv;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
@@ -12,6 +11,7 @@ import ai.djl.training.GradientCollector;
 import ai.djl.training.Trainer;
 import ai.djl.translate.Batchifier;
 import algorithm.CommonParameter;
+import algorithm.RlAgentCloseable;
 import algorithm.ppo.PPOParameter;
 import utils.Helper;
 
@@ -24,9 +24,9 @@ import java.util.Random;
  * @author Caojunqi
  * @date 2021-11-27 11:09
  */
-public class PPO implements RlAgent {
+public class PPO implements RlAgentCloseable {
 
-    private NDManager mainManager;
+    private NDManager agentManager;
     private Random random;
     private Trainer trainer;
     private Batchifier batchifier;
@@ -51,8 +51,8 @@ public class PPO implements RlAgent {
     private float vfCoef;
     private float maxGradNorm;
 
-    public PPO(NDManager mainManager, Random random, Trainer trainer) {
-        this.mainManager = mainManager;
+    public PPO(NDManager agentManager, Random random, Trainer trainer) {
+        this.agentManager = agentManager;
         this.random = random;
         this.trainer = trainer;
         this.batchifier = Batchifier.STACK;
@@ -60,7 +60,7 @@ public class PPO implements RlAgent {
 
     @Override
     public NDList chooseAction(RlEnv env, boolean training) {
-        try (NDManager manager = mainManager.newSubManager()) {
+        try (NDManager manager = agentManager.newSubManager()) {
             NDList[] inputs = buildInputs(manager, env);
             NDArray action = trainer.forward(batchifier.batchify(inputs)).get(0).duplicate();
             return new NDList(action);
@@ -75,7 +75,7 @@ public class PPO implements RlAgent {
 
     @Override
     public void trainBatch(RlEnv.Step[] batchSteps) {
-        try (NDManager subManager = mainManager.newSubManager()) {
+        try (NDManager subManager = agentManager.newSubManager()) {
             NDArray states = buildBatchPreObservation(batchSteps).singletonOrThrow();
             NDArray actions = buildBatchAction(batchSteps);
             NDArray rewards = buildBatchReward(batchSteps);
@@ -140,6 +140,12 @@ public class PPO implements RlAgent {
 
             trainer.notifyListeners(listener -> listener.onTrainingBatch(trainer, null));
         }
+    }
+
+    @Override
+    public void close() {
+        this.agentManager.close();
+        this.trainer.close();
     }
 
     private NDList buildBatchPreObservation(RlEnv.Step[] batchSteps) {
