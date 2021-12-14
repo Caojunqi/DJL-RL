@@ -86,7 +86,8 @@ public class PPO implements RlAgentCloseable {
             NDArray actionsPred = output.get(0);
             NDArray values = output.get(1).duplicate();
             NDArray actionLogProbPred = output.get(2).duplicate();
-            NDArray distribution = Helper.gather(actionLogProbPred, actions.toIntArray());
+            NDArray entropy = output.get(3).duplicate();
+            NDArray distribution = actionLogProbPred.get(new NDIndex().addAllDim(actionLogProbPred.getShape().dimension() - 1).addPickDim(actions));
 
             NDList lastValueOutput = trainer.forward(new NDList(lastState));
             float lastValue = lastValueOutput.get(1).duplicate().getFloat(-1);
@@ -104,18 +105,16 @@ public class PPO implements RlAgentCloseable {
                     NDArray statesSubset = getSample(subManager, states, index);
                     NDArray actionsSubset = getSample(subManager, actions, index);
                     NDArray actionLogProbPredSubset = getSample(subManager, actionLogProbPred, index);
+                    NDArray entropySubset = getSample(subManager, entropy, index);
                     NDArray expectedReturnsSubset = getSample(subManager, expectedReturns, index);
                     NDArray advantagesSubset = getSample(subManager, advantages, index);
                     NDArray distributionSubset = getSample(subManager, distribution, index);
-
-                    NDArray actionProPred = actionLogProbPredSubset.exp();
-                    NDArray entropy = actionLogProbPredSubset.mul(actionProPred).sum(new int[]{-1}).neg();
 
                     NDList outputBatch = trainer.forward(new NDList(statesSubset));
                     NDArray actionsBatch = outputBatch.get(0);
                     NDArray valuesBatch = outputBatch.get(1);
                     NDArray actionLogProbBatch = outputBatch.get(2);
-                    NDArray distributionBatch = Helper.gather(actionLogProbBatch, actionsSubset.toIntArray());
+                    NDArray distributionBatch = actionLogProbBatch.get(new NDIndex().addAllDim(actionLogProbBatch.getShape().dimension() - 1).addPickDim(actionsSubset));
 
                     NDArray ratios = distributionBatch.sub(distributionSubset).exp();
 
@@ -125,7 +124,7 @@ public class PPO implements RlAgentCloseable {
 
                     NDArray lossCritic = (expectedReturnsSubset.sub(valuesBatch)).square().mean();
 
-                    NDArray lossEntropy = entropy.mean().neg();
+                    NDArray lossEntropy = entropySubset.mean().neg();
 
                     float entCoef = 0.0f;
                     float vfCoef = 0.5f;

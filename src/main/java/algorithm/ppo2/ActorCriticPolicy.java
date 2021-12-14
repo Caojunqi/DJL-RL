@@ -49,6 +49,11 @@ public class ActorCriticPolicy extends AbstractBlock {
         NDList mlp = this.mlpExtractor.forward(parameterStore, flatten, training);
         NDArray values = this.valueNet.forward(parameterStore, new NDList(mlp.get(1)), training).singletonOrThrow();
         NDArray meanAction = this.actionNet.forward(parameterStore, new NDList(mlp.get(0)), training).singletonOrThrow();
+        // Normalize
+        meanAction = meanAction.sub(meanAction.exp().sum(new int[]{-1}, true).log());
+//        NDArray mask = meanAction.getManager().create(new float[]{0, 1}).toType(DataType.BOOLEAN, false).broadcast(meanAction.getShape());
+//        NDArray maskPolicy = NDArrays.where(mask, meanAction, meanAction.getManager().create(-1e8f));
+//        maskPolicy = maskPolicy.sub(maskPolicy.exp().sum(new int[]{-1},true).log());
         NDArray actionProb = meanAction.softmax(-1);
         NDArray actions;
         if (training) {
@@ -56,8 +61,8 @@ public class ActorCriticPolicy extends AbstractBlock {
         } else {
             actions = actionProb.argMax();
         }
-        NDArray actionLogProb = actionProb.log();
-        return new NDList(actions, values, actionLogProb);
+        NDArray entropy = meanAction.mul(actionProb).sum(new int[]{-1}).neg();
+        return new NDList(actions, values, meanAction, entropy);
     }
 
     @Override
