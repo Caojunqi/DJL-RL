@@ -74,6 +74,7 @@ public final class ActionSampler {
                     value++;
                 } else {
                     actionData[i] = value;
+                    break;
                 }
                 rnd -= cut;
             }
