@@ -1,12 +1,14 @@
 package demo.mountaincar;
 
-import env.action.core.impl.DiscreteAction;
-import env.action.space.impl.DiscreteActionSpace;
-import env.common.Environment;
-import env.state.core.impl.BoxState;
-import env.state.space.impl.BoxStateSpace;
-import org.apache.commons.lang3.Validate;
-import utils.datatype.Snapshot;
+import ai.djl.modality.rl.ActionSpace;
+import ai.djl.modality.rl.ReplayBuffer;
+import ai.djl.modality.rl.env.RlEnv;
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+import algorithm.ppo2.FixedBuffer;
+
+import java.util.Random;
 
 /*_
  * 复刻gym中的MountainCar-v0环境，动作空间是离散的
@@ -52,7 +54,7 @@ import utils.datatype.Snapshot;
  * @author Caojunqi
  * @date 2021-09-09 21:28
  */
-public class MountainCar extends Environment<BoxState, DiscreteAction> {
+public class MountainCar implements RlEnv {
     private static final double[][] STATE_SPACE = new double[][]{{-1.2, 0.6}, {-0.07, 0.07}};
     private static final float MIN_POSITION = -1.2f;
     private static final float MAX_POSITION = 0.6f;
@@ -65,51 +67,139 @@ public class MountainCar extends Environment<BoxState, DiscreteAction> {
     private static final double GRAVITY = 0.0025;
     private static final double MAX_EPISODE_LENGTH = 200;
 
-    private final float[] state = new float[]{0.0f, 0.0f};
-    private final MountainCarVisualizer visualizer;
+    private NDManager manager;
+    private ReplayBuffer replayBuffer;
+    private Random random;
+    private State state;
 
-    private int episodeLength = 0;
-
-    public MountainCar(boolean visual) {
-        super(new BoxStateSpace(STATE_SPACE), new DiscreteActionSpace(3));
-        visualizer = visual ? new MountainCarVisualizer(MIN_POSITION, MAX_POSITION, GOAL_POSITION, 1000) : null;
+    public MountainCar(NDManager manager, Random random, int batchSize, int bufferSize) {
+        this.manager = manager;
+        this.replayBuffer = new FixedBuffer(batchSize, bufferSize);
+        this.random = random;
+        this.state = new State(new float[]{0.0f, 0.0f}, 0);
     }
 
     @Override
-    protected Snapshot<BoxState> doStep(DiscreteAction action) {
-        Validate.isTrue(actionSpace.canStep(action), "action[" + action + "] invalid!!");
-        int actionData = action.getActionData();
-        state[1] += (actionData - 1) * FORCE - Math.cos(3 * state[0]) * (-GRAVITY);
-        state[1] = Math.min(Math.max(state[1], -MAX_SPEED), MAX_SPEED);
-        state[0] += state[1];
-        state[0] = Math.min(Math.max(state[0], MIN_POSITION), MAX_POSITION);
-
-        if (state[0] == MIN_POSITION && state[1] < 0) {
-            state[1] = 0;
-        }
-        boolean done = ((state[0] >= GOAL_POSITION && state[1] >= GOAL_VELOCITY)
-                || ++episodeLength >= MAX_EPISODE_LENGTH);
-
-        return new Snapshot<>(new BoxState(state), -1, done);
-    }
-
-    @Override
-    public BoxState reset() {
-        episodeLength = 0;
-        this.state[0] = random.nextFloat() * 0.2f - 0.6f;
-        this.state[1] = 0;
-        return new BoxState(this.state);
-    }
-
-    @Override
-    public void render() {
-        if (visualizer != null) {
-            visualizer.update(state);
-        }
+    public void reset() {
+        this.state.stateData[0] = random.nextFloat() * 0.2f - 0.6f;
+        this.state.stateData[1] = 0;
+        this.state.count = 0;
     }
 
     @Override
     public void close() {
+        manager.close();
+    }
 
+    @Override
+    public NDList getObservation() {
+        return state.getObservation(manager);
+    }
+
+    @Override
+    public ActionSpace getActionSpace() {
+        return state.getActionSpace(manager);
+    }
+
+    @Override
+    public Step step(NDList action, boolean training) {
+        State preState = state;
+        state = new State(preState.stateData.clone(), preState.count);
+        int actionData = action.singletonOrThrow().getInt();
+        state.stateData[1] += (actionData - 1) * FORCE - Math.cos(3 * state.stateData[0]) * (-GRAVITY);
+        state.stateData[1] = Math.min(Math.max(state.stateData[1], -MAX_SPEED), MAX_SPEED);
+        state.stateData[0] += state.stateData[1];
+        state.stateData[0] = Math.min(Math.max(state.stateData[0], MIN_POSITION), MAX_POSITION);
+
+        if (state.stateData[0] == MIN_POSITION && state.stateData[1] < 0) {
+            state.stateData[1] = 0;
+        }
+        boolean done = state.stateData[0] >= GOAL_POSITION && state.stateData[1] >= GOAL_VELOCITY;
+
+        MountainCarStep step = new MountainCarStep(manager.newSubManager(), preState, state, action, -1.0f, state.count++ > MAX_EPISODE_LENGTH || done);
+        if (training) {
+            replayBuffer.addStep(step);
+        }
+        return step;
+    }
+
+    @Override
+    public Step[] getBatch() {
+        return replayBuffer.getBatch();
+    }
+
+    static final class MountainCarStep implements RlEnv.Step {
+        private NDManager manager;
+        private State preState;
+        private State postState;
+        private NDList action;
+        private float reward;
+        private boolean done;
+
+        private MountainCarStep(NDManager manager, State preState, State postState, NDList action, float reward, boolean done) {
+            this.manager = manager;
+            this.preState = preState;
+            this.postState = postState;
+            this.action = action;
+            this.reward = reward;
+            this.done = done;
+        }
+
+        @Override
+        public NDList getPreObservation() {
+            return preState.getObservation(manager);
+        }
+
+        @Override
+        public NDList getAction() {
+            return action;
+        }
+
+        @Override
+        public NDList getPostObservation() {
+            return postState.getObservation(manager);
+        }
+
+        @Override
+        public ActionSpace getPostActionSpace() {
+            return postState.getActionSpace(manager);
+        }
+
+        @Override
+        public NDArray getReward() {
+            return manager.create(reward);
+        }
+
+        @Override
+        public boolean isDone() {
+            return done;
+        }
+
+        @Override
+        public void close() {
+            manager.close();
+        }
+    }
+
+    private static class State {
+        float[] stateData;
+        int count;
+
+        private State(float[] stateData, int count) {
+            this.stateData = stateData;
+            this.count = count;
+        }
+
+        private NDList getObservation(NDManager manager) {
+            return new NDList(manager.create(stateData));
+        }
+
+        private ActionSpace getActionSpace(NDManager manager) {
+            ActionSpace actionSpace = new ActionSpace();
+            for (int i = 0; i < 3; i++) {
+                actionSpace.add(new NDList(manager.create(i)));
+            }
+            return actionSpace;
+        }
     }
 }

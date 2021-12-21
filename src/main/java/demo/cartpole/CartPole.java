@@ -1,7 +1,6 @@
 package demo.cartpole;
 
 import ai.djl.modality.rl.ActionSpace;
-import ai.djl.modality.rl.LruReplayBuffer;
 import ai.djl.modality.rl.ReplayBuffer;
 import ai.djl.modality.rl.env.RlEnv;
 import ai.djl.ndarray.NDArray;
@@ -62,9 +61,6 @@ import java.util.Random;
  * @date 2021-09-09 21:07
  */
 public class CartPole implements RlEnv {
-    private static final double[][] STATE_SPACE = new double[][]{{-4.8, 4.8},
-            {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}, {-0.418, 0.418},
-            {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}};
     private static final double GRAVITY = 9.8;
     private static final double CART_MASS = 1.0;
     private static final double POLE_MASS = 0.1;
@@ -82,12 +78,6 @@ public class CartPole implements RlEnv {
     private Random random;
     private State state;
 
-
-    /**
-     * @param manager    the manager for creating the env in
-     * @param batchSize  the number of steps to train on per batch
-     * @param bufferSize the number of steps to hold in the buffer
-     */
     public CartPole(NDManager manager, Random random, int batchSize, int bufferSize) {
         this.manager = manager;
         this.replayBuffer = new FixedBuffer(batchSize, bufferSize);
