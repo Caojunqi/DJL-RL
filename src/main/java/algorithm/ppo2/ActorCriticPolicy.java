@@ -59,7 +59,8 @@ public class ActorCriticPolicy extends AbstractBlock {
         if (training) {
             actions = ActionSampler.sampleMultinomial(mainManager, actionProb, random);
         } else {
-            actions = actionProb.argMax();
+            actions = actionProb.argMax().toType(DataType.INT32, false);
+            actions.attach(mainManager);
         }
         NDArray entropy = meanAction.mul(actionProb).sum(new int[]{-1}).neg();
         return new NDList(actions, values, meanAction, entropy);

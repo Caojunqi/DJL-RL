@@ -31,26 +31,6 @@ public class PPO implements RlAgentCloseable {
     private Trainer trainer;
     private Batchifier batchifier;
 
-
-    // BaseAlgorithm
-    private int verbose;
-    private int numTimeSteps;
-    private int totalTimeSteps;
-    private float learningRate;
-    private String tensorBoardLog;
-    private int episodeNum;
-    private boolean useSde;
-    private int sdeSampleFreq;
-    private int currentProgressRemaining = 1;
-    private int nUpdates;
-    // OnPolicyAlgorithm
-    private int nSteps;
-    private float gamma;
-    private float gaeLambda;
-    private float entCoef;
-    private float vfCoef;
-    private float maxGradNorm;
-
     public PPO(NDManager agentManager, Random random, Trainer trainer) {
         this.agentManager = agentManager;
         this.random = random;
@@ -62,7 +42,12 @@ public class PPO implements RlAgentCloseable {
     public NDList chooseAction(RlEnv env, boolean training) {
         try (NDManager manager = agentManager.newSubManager()) {
             NDList[] inputs = buildInputs(manager, env);
-            NDArray action = trainer.forward(batchifier.batchify(inputs)).get(0).duplicate();
+            NDArray action;
+            if (training) {
+                action = trainer.forward(batchifier.batchify(inputs)).get(0).duplicate();
+            } else {
+                action = trainer.evaluate(batchifier.batchify(inputs)).get(0).duplicate();
+            }
             return new NDList(action);
         }
     }
@@ -126,9 +111,7 @@ public class PPO implements RlAgentCloseable {
 
                     NDArray lossEntropy = entropySubset.mean().neg();
 
-                    float entCoef = 0.0f;
-                    float vfCoef = 0.5f;
-                    NDArray loss = lossActor.add(lossEntropy.mul(entCoef)).add(lossCritic.mul(vfCoef));
+                    NDArray loss = lossActor.add(lossEntropy.mul(PPOParameter.ENT_LOSS_COEF)).add(lossCritic.mul(PPOParameter.VF_LOSS_COEF));
 
                     try (GradientCollector collector = Engine.getInstance().newGradientCollector()) {
                         collector.backward(loss);

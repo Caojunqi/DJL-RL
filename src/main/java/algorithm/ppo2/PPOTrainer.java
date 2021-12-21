@@ -87,7 +87,6 @@ public class PPOTrainer {
             for (int j = 0; j < gamesPerEpoch; j++) {
                 RlEnv.Step[] batchSteps = env.getBatch();
                 agent.trainBatch(batchSteps);
-//                policyTrainer.step();
             }
 
             for (int j = 0; j < validationGamesPerEpoch; j++) {

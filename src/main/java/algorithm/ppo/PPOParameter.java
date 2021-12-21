@@ -8,6 +8,14 @@ package algorithm.ppo;
  */
 public final class PPOParameter {
     /**
+     * 熵损失系数
+     */
+    public final static float ENT_LOSS_COEF = 0.0f;
+    /**
+     * 价值函数损失系数
+     */
+    public final static float VF_LOSS_COEF = 0.5f;
+    /**
      * 策略模型隐藏层参数个数
      */
     public final static int[] POLICY_MODEL_HIDDEN_SIZE = new int[]{128, 128};
